@@ -60,7 +60,12 @@ def process_joints():
     # Reconstruct the flaredJoint objects from the session data
     joints = [flaredJoint(data['location'], data['normal_vector'], data['flare_size']) for data in joint_data]
     
-    generated_files = generateSupports(joints, GENERATED_FOLDER)  # Call the function to generate the tooling files
+    # Get the tolerance value from the form
+    tolerance = float(request.form.get("toleranceValue"))  # Default to 0.25 if not provided
+    # Get the tolerance value from the form
+    plateThk = float(request.form.get("thicknessValue"))  # Default to 0.25 if not provided
+
+    generated_files = generateSupports(joints, GENERATED_FOLDER, tolerance, plateThk)  # Call the function to generate the tooling files
     
     generated_files = [os.path.basename(f) for f in generated_files]  # Get only the filenames
     
@@ -81,4 +86,4 @@ def download_zip():
     return send_file(zip_path, as_attachment=True, download_name='generated_files.zip')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)

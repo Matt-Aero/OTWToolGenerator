@@ -15,14 +15,15 @@ class flaredJoint(Joint):
         self.flareSize = flareSize
         self.type = "flared"
 
-def generateSupports(joints, export_dir):
+def generateSupports(joints, export_dir, tolerance, plateThk):
     # Generates all 3x support pieces for a single joint
     
     ## General Parameters
-    tabTol = .5 # tolerancing between tab + slot parts
-    holeTolerance = 0.3 # mm
-    z_plate_offset = .3 # how far off the table to offset the tabs. 1mm usually
-    plateThk = 0.5 * 25.4
+    filletRadius = 10 #
+    tabTol = tolerance # mm, additional gap added on all sides of the tab+slots
+    holeTolerance = tabTol # mm
+    z_plate_offset = .1 # how far off the table to offset the tabs. 1mm usually
+    plateThk = plateThk
     in2m = 25.4 # conversion variable for easily converting in->mm
     purgeHoleID = 7 # mm, diameter of the purge hole added to each plate
 
@@ -73,6 +74,7 @@ def generateSupports(joints, export_dir):
         .lineTo(x_min, y_max)
         .close()  # Close the loop back to the starting point
         .extrude(plateThk)
+        .edges("|Z").fillet(filletRadius) # only fillet the edges parallel to Z
     )
 
     ####### Looping Through Joints
@@ -113,6 +115,7 @@ def generateSupports(joints, export_dir):
                 jointWorkPlane
                 .rect(plateHeight, plateWidth)
                 .circle(flareHoleSize / 2)
+                .extrude(plateThk)
             )
         
         tabWidth = plateThk
@@ -160,6 +163,7 @@ def generateSupports(joints, export_dir):
             .lineTo(tabHeightMax, -joint_location[2] + plateThk)
             .close()
             .extrude(-plateThk)
+            .edges("|Z").fillet(filletRadius) # only fillet the edges parallel to Z
         )
         bottomTab = ( # creating a separate object here so we can use it for cutting the bottom plate
             sideWorkPlane
@@ -172,8 +176,12 @@ def generateSupports(joints, export_dir):
     
         ##################
         # Create Toleranced tab object for cutting from the side support
-        tab_toleranced = sideTab_py.shell(tabTol)
-        sideSupport = sideSupport.cut(tab_toleranced).cut(sideTab_py) # Need to subtract out the un-toleranced shape out too, since the shell is a shell! it won't subtract out the center
+        if tabTol > 0: # Prevent 0-inputs from breaking due to inf thin geometry
+            tab_toleranced = sideTab_py.shell(tabTol)
+            sideSupport = sideSupport.cut(tab_toleranced).cut(sideTab_py) # Need to subtract out the un-toleranced shape out too, since the shell is a shell! it won't subtract out the center
+        else:
+            sideSupport = sideSupport.cut(sideTab_py)  # only cutout the untoleranced shape if tol=0
+
         # Export sideSupport to STL file
         side_support_path = os.path.join(export_dir, f"side_support_{i+1}.stl")
         exporters.export(sideSupport, side_support_path)
@@ -191,7 +199,10 @@ def generateSupports(joints, export_dir):
         generated_files.append(side_support_mirror_path)
     
         # Now take cuts from the baseplate
-        bottomTab_toleranced = bottomTab.shell(tabTol)
+        if tabTol > 0: # Prevent 0-inputs from breaking due to inf thin geometry
+            bottomTab_toleranced = bottomTab.shell(tabTol)
+        else:
+            bottomTab_toleranced = bottomTab
         basePlate = basePlate.cut(bottomTab_toleranced).cut(bottomTab)
         basePlate = basePlate.cut(bottomTab_toleranced.translate(translation)).cut(sideSupport_mirror) # mirroring to get the other side as well
     

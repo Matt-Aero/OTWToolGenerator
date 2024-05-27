@@ -6,14 +6,17 @@ import { OrbitControls } from "https://cdn.skypack.dev/three@0.132.2/examples/js
 let upVector = new THREE.Vector3(0, 0, 1);
 let renderer, scene, camera, controls, currentMeshes = [];
 let uploadedFile = null;
+var gridEdgeLength = 3000; // mm
+var gridSpacing = 100; // mm
+const material_tube = new THREE.MeshMatcapMaterial({ color: 0xFF8600 });
+const material_tool = new THREE.MeshMatcapMaterial({ color: 0xB0B0B0 });
+
+var materialIndex = 0; // Counter to keep track of the material index
 
 document.addEventListener('DOMContentLoaded', () => {
 
     init();
     animate();
-
-    const material_tube = new THREE.MeshMatcapMaterial({ color: 0xFF8600 });
-    const material_tool = new THREE.MeshMatcapMaterial({ color: 0xB0B0B0 });
 
     function init() {
         THREE.Object3D.DefaultUp = upVector;
@@ -22,9 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const axesHelper = new THREE.AxesHelper(50);
         scene.add(axesHelper);
 
+        //var arrowPos = new THREE.Vector3( 0,0,0 );
+        scene.add( new THREE.ArrowHelper( new THREE.Vector3( 1,0,0 ), new THREE.Vector3( 0, 0, 0 ), 60, 0xFF0000, 10, 5 ) );
+        scene.add( new THREE.ArrowHelper( new THREE.Vector3( 0,1,0 ), new THREE.Vector3( 0, 0, 0 ), 60, 0x008000, 10, 5 ) );
+        scene.add( new THREE.ArrowHelper( new THREE.Vector3( 0,0,1 ), new THREE.Vector3( 0, 0, 0 ), 60, 0x0000FF, 10, 5 ) );
+
+
         let map = document.getElementById('threejsDisplay');
         let mapDimensions = map.getBoundingClientRect();
-        camera = new THREE.PerspectiveCamera(55, mapDimensions.width / mapDimensions.height, 1, 10000);
+        camera = new THREE.PerspectiveCamera(50, mapDimensions.width / mapDimensions.height, 1, 10000);
         camera.position.set(1000, 1000, 1000); // Adjust camera position
         camera.up.copy(upVector); // Set camera up direction
         camera.lookAt(new THREE.Vector3(0, 0, 0)); // Ensure camera looks at the origin
@@ -32,14 +41,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(mapDimensions.width, mapDimensions.height);
-
         document.getElementById('viewer').appendChild(renderer.domElement);
+        
+        // drawing grid on ground plane
+        updateGrid();
+
+        // listening for the window to be resized
         window.addEventListener('resize', onWindowResize, false);
 
+        // controls for moving around the objects
         controls = new OrbitControls(camera, renderer.domElement);
         controls.target.set(0, 0, 0); // Set controls target
         controls.update();
 
+        // listening for file upload
         const fileInput = document.querySelector('input[type="file"]');
         if (fileInput) {
             fileInput.addEventListener('change', function(event) {
@@ -48,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // listening for user to press the generate tooling button
         document.getElementById('jointsForm').addEventListener('submit', function(event) {
             event.preventDefault();
             const formData = new FormData(this);
@@ -58,11 +74,38 @@ document.addEventListener('DOMContentLoaded', () => {
             loadTooling(formData); // Load the generated tooling
         });
 
+        // listening for the export button
         document.getElementById('exportButton').addEventListener('click', function() {
             window.location.href = '/download_zip';
         });
+
+        // listening for user to change grid spacing
+        document.querySelectorAll('input[name="gridSpacing"]').forEach(radio => {
+            radio.addEventListener('change', function(event) {
+                gridSpacing = parseInt(event.target.value);
+                updateGrid();
+            });
+        });
+        
+
     }
 
+    // updating the grid spacing based on user input
+    function updateGrid() {
+        // Remove the existing grid
+        const existingGrid = scene.getObjectByName('gridHelper');
+        if (existingGrid) {
+            scene.remove(existingGrid);
+        }
+    
+        // Add a new grid with the updated spacing
+        const numDivisions = gridEdgeLength / gridSpacing;
+        const grid = new THREE.GridHelper(gridEdgeLength, numDivisions);
+        grid.rotation.x = Math.PI / 2;
+        grid.name = 'gridHelper'; // Set a name to easily find and remove the grid
+        scene.add(grid);
+    }
+    
     function loadFileUpload(file) {
         if (file) {
             const loader = new STLLoader();
@@ -108,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
             scene.add(mesh);
         });
     }
-
+    
     function clearScene() {
         currentMeshes.forEach(mesh => {
             scene.remove(mesh);
@@ -179,6 +222,81 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelector('button#addJointButton').addEventListener('click', addJoint);
     document.querySelector('button#removeJointButton').addEventListener('click', removeJoint);
+
+    // JavaScript to sync slider and text input for the tolerance input slider
+    document.getElementById('toleranceSlider').addEventListener('input', function() {
+        var value = parseFloat(this.value).toFixed(2);
+        document.getElementById('toleranceValue').value = value;
+        document.getElementById('toleranceInput').value = value;
+    });
+
+    document.getElementById('toleranceValue').addEventListener('blur', function() {
+        updateToleranceValue();
+    });
+
+    document.getElementById('toleranceValue').addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            updateToleranceValue();
+        }
+    });
+    function updateToleranceValue() {
+        let val_max = 1;
+        let val_min = 0;
+        var value = parseFloat(document.getElementById('toleranceValue').value);
+        if (value >= val_min && value <= val_max) {
+            document.getElementById('toleranceSlider').value = value.toFixed(2);
+            document.getElementById('toleranceValue').value = value.toFixed(2);
+            document.getElementById('toleranceInput').value = value.toFixed(2);
+        } else if (value > val_max) {
+            document.getElementById('toleranceValue').value = (val_max).toFixed(2);
+            document.getElementById('toleranceSlider').value = (val_max).toFixed(2);
+            document.getElementById('toleranceInput').value = (val_max).toFixed(2);
+        } else if (value < val_min) {
+            document.getElementById('toleranceValue').value = (val_min).toFixed(2);
+            document.getElementById('toleranceSlider').value = (val_min).toFixed(2);
+            document.getElementById('toleranceInput').value = (val_min).toFixed(2);
+        }
+    }
+
+
+    // JavaScript to sync slider and text input for the thickness input slider
+    
+    document.getElementById('thicknessSlider').addEventListener('input', function() {
+        var value = parseFloat(this.value).toFixed(2);
+        document.getElementById('thicknessValue').value = value;
+        document.getElementById('thicknessInput').value = value;
+    });
+    // only updating function when the user clicks away from this box
+    document.getElementById('thicknessValue').addEventListener('blur', function() {
+        updateThicknessValue();
+    });
+    document.getElementById('thicknessValue').addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            updateThicknessValue();
+        }
+    });
+    function updateThicknessValue() {
+        let val_max = 25.4;
+        let val_min = 1;
+        var value = parseFloat(document.getElementById('thicknessValue').value);
+        if (value >= val_min && value <= val_max) {
+            document.getElementById('thicknessSlider').value = value.toFixed(2);
+            document.getElementById('thicknessValue').value = value.toFixed(2);
+            document.getElementById('thicknessInput').value = value.toFixed(2);
+        } else if (value > val_max) {
+            document.getElementById('thicknessValue').value = (val_max).toFixed(2);
+            document.getElementById('thicknessSlider').value = (val_max).toFixed(2);
+            document.getElementById('thicknessInput').value = (val_max).toFixed(2);
+        } else if (value < val_min) {
+            document.getElementById('thicknessValue').value = (val_min).toFixed(2);
+            document.getElementById('thicknessSlider').value = (val_min).toFixed(2);
+            document.getElementById('thicknessInput').value = (val_min).toFixed(2);
+        }
+    }
+
+
+
+
 
     // Form validation
     document.querySelector('button#generateToolingButton').addEventListener('click', function(event) {

@@ -30,26 +30,67 @@ label {
     border-right: 2px solid #A9A9A9;
 }
 #jointsContainer {
-    max-height: 70vh; /* 70% of the viewport height */
+    max-height: 50vh; /* 50% of the viewport height */
     overflow-y: auto;
     scrollbar-color: #6c757d #343a40; /* For Firefox */
     scrollbar-width: thin; /* For Firefox */
 }
 
-/* Scroll Bar for Joints */
-#jointsContainer::-webkit-scrollbar {
-    width: 12px;
-}
-#jointsContainer::-webkit-scrollbar-track {
-    background: #343a40;
-}
-#jointsContainer::-webkit-scrollbar-thumb {
-    background-color: #6c757d;
-    border-radius: 10px;
-    border: 3px solid #343a40;
+/* RADIO BUTTONS FOR GRID */
+#radioButtonsContainer {
+    position: absolute;
+    bottom: 1em;
+    right: 1em;
+    background-color: rgba(0, 0, 0, 0); /* Slightly transparent */
+    display: flex;
+    gap: 0.5em;
+    border-radius: .5em;
+    align-items: center;
 }
 
-#generateToolingButton {
-    padding: 5px 10px;
-    margin-top: 20px;
+.label-text {
+    color: rgb(255, 255, 255);
+}
+
+.radio-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .5em;
+    cursor: pointer;
+    flex: 1;
+}
+
+.radio-button input {
+    display: none;
+}
+
+.radio-button label {
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    padding: .4em .4em;
+}
+
+.radio-button input:checked + label {
+    border-radius: .5em;
+    background-color: rgba(116, 116, 116, 0.7); /* Slightly transparent */
+}
+
+input:focus::placeholder {
+    color: transparent;
+}
+
+#addJointButton {
+text-align: center;
+background-color: rgb(255, 255, 255);
+color: black;
+border-color: black;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+-webkit-appearance: none;
+margin: 0;
 }
