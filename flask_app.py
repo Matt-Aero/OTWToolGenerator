@@ -6,7 +6,7 @@ import shutil
 from CADQuery import Joint, flaredJoint, generateSupports
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey__2'
+app.secret_key = '5d536a3d438345fe076b77d8ff8e09405817b7cc462dcb466b592b75c2978ce7'
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 app.config['GENERATED_FOLDER'] = tempfile.gettempdir()
 ALLOWED_EXTENSIONS = {'stl'}
@@ -87,7 +87,7 @@ def download_zip():
     with zipfile.ZipFile(zip_path, 'w') as zipf:
         for root, dirs, files in os.walk(user_folder):
             for file in files:
-                if file.endswith('.stl') and 'generated_files.zip' not in file:
+                if file.endswith('.step') and 'generated_files.zip' not in file:
                     zipf.write(os.path.join(root, file), file)
     return send_file(zip_path, as_attachment=True, download_name='generated_files.zip')
 

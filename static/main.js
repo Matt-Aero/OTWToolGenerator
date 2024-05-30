@@ -120,6 +120,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadTooling(formData) {
+        // Show the loading message
+        document.getElementById('loadingMessage').style.display = 'block';
+    
         fetch('/process_joints', {
             method: 'POST',
             body: formData
@@ -132,15 +135,29 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(data => {
             console.log('Generated files:', data.generated_files);
-            const files = data.generated_files;
-            files.forEach(file => {
-                loadSTL(file);
+            // Filter the files to include only .stl files
+            const stlFiles = data.generated_files.filter(file => file.endsWith('.stl'));
+            let loadedFiles = 0;
+    
+            stlFiles.forEach(file => {
+                loadSTL(file, () => {
+                    loadedFiles++;
+                    if (loadedFiles === stlFiles.length) {
+                        // Hide the loading message when all files are loaded
+                        document.getElementById('loadingMessage').style.display = 'none';
+                    }
+                });
             });
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+            console.error('Error:', error);
+            // Hide the loading message in case of an error
+            document.getElementById('loadingMessage').style.display = 'none';
+        });
     }
-
-    function loadSTL(file) {
+    
+    
+    function loadSTL(file, onLoadCallback) {
         const loader = new STLLoader();
         loader.load(`/generated/${file}`, function(geometry) {
             const mesh = new THREE.Mesh(geometry, material_tool);
@@ -148,8 +165,10 @@ document.addEventListener('DOMContentLoaded', () => {
             mesh.receiveShadow = true;
             currentMeshes.push(mesh);
             scene.add(mesh);
+            if (onLoadCallback) onLoadCallback();
         });
     }
+    
     
     function clearScene() {
         currentMeshes.forEach(mesh => {

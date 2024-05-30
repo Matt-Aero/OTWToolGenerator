@@ -23,7 +23,7 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
     #filletRelief = 3  # fillet size of the blending for the radius reliefs
     filletRadius = 10 #
     tabTol = 2*tolerance # mm, additional gap added on all sides of the tab+slots
-    holeTolerance = tabTol # mm
+    holeTolerance = 2*tolerance # mm
     z_plate_offset = .3 # how far off the table to offset the tabs. 1mm usually
     plateThk = plateThk
     in2m = 25.4 # conversion variable for easily converting in->mm
@@ -34,9 +34,9 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
     # zoffset - the offset to apply between the where the user specifies the tube end location to be, and where we actually want to place the extrusion relative to this
 
     flare_sizes = {
-        "1/4": {"hole_size": 0.25 * 25.4 + holeTolerance, "zoffset": 0},
-        "1/2": {"hole_size": 0.5 * 25.4 + holeTolerance, "zoffset": 0},
-        "1": {"hole_size": 1.0 * 25.4 + holeTolerance, "zoffset": 0}
+        "1/4": {"hole_size": 7/16 * 25.4 + holeTolerance, "zoffset": 0},
+        "1/2": {"hole_size": 3/4 * 25.4 + holeTolerance, "zoffset": 0},
+        "1": {"hole_size": (1+5/16) * 25.4 + holeTolerance, "zoffset": 0}
     }
 
     os.makedirs(export_dir, exist_ok=True)  # Create directory if it doesn't exist
@@ -109,7 +109,7 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             numbolts = joints[i].numBolts
             plateWidth = boltCircleDiameter * 1.6
             plateHeight = boltCircleDiameter * 1.35
-            jointPlate = (
+            facePlate = (
                 jointWorkPlane
                 .rect(plateHeight, plateWidth)
                 .circle(purgeHoleID / 2)
@@ -122,13 +122,13 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             plateWidth = flareHoleSize * 3.5
             plateHeight = flareHoleSize * 3.5
         
-            jointPlate = (
+            facePlate = (
                 jointWorkPlane
                 .rect(plateHeight, plateWidth)
                 .circle(flareHoleSize / 2)
                 .extrude(plateThk/2, both=True)  # symmetric extrude
             )
-            
+
         
         tabWidth = plateThk
         tabHeight = plateHeight / 2 # how long the tab is
@@ -147,12 +147,16 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             .extrude(plateThk/2, both=True)
         )
     
-        jointPlate = jointPlate.union(sideTab_ny)
-        jointPlate = jointPlate.union(sideTab_py)
-        # Export jointPlate to STL file
-        joint_plate_path = os.path.join(export_dir, f"joint_plate_{i+1}.stl")
-        exporters.export(jointPlate, joint_plate_path)
-        generated_files.append(joint_plate_path)
+        facePlate = facePlate.union(sideTab_ny)
+        facePlate = facePlate.union(sideTab_py)
+        
+        # Export facePlate to STL an .step files
+        facePlate_path_stl = os.path.join(export_dir, f"joint_{i+1}_facePlate.stl")
+        facePlate_path_step = os.path.join(export_dir, f"joint_{i+1}_facePlate.step")
+        exporters.export(facePlate, facePlate_path_stl)
+        exporters.export(facePlate, facePlate_path_step)
+        generated_files.append(facePlate_path_stl)
+        generated_files.append(facePlate_path_step)
     
         ## Side Supports
         # Create a New Workplane for the side supports
@@ -206,25 +210,30 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
         
         sideSupport = sideSupport.cut(sideTab_py_tol).cut(sideTab_py_tol) # Need to subtract out the un-toleranced shape out too, since the shell is a shell! it won't subtract out the center
         
-        # Export sideSupport to STL file
-        side_support_path = os.path.join(export_dir, f"side_support_{i+1}.stl")
-        exporters.export(sideSupport, side_support_path)
-        generated_files.append(side_support_path)
+        # Export to STL and .step files
+        sideSupport_path_stl = os.path.join(export_dir, f"joint_{i+1}_sideSupport.stl")
+        sideSupport_path_step = os.path.join(export_dir, f"joint_{i+1}_sideSupport.step")
+        exporters.export(sideSupport, sideSupport_path_stl)
+        exporters.export(sideSupport, sideSupport_path_step)
+        generated_files.append(sideSupport_path_stl)
+        generated_files.append(sideSupport_path_step)
+
         # Mirroring the side support
         sideSupport_GlobalCoords = jointPlane.toWorldCoords((0, plateWidth / 2 + plateThk / 2)) # first get the location of the existing side support in global coordinates
         translation = (2 * (sideSupport_GlobalCoords.x - joint_location[0]), # now, find the delta from the center of the joint
                        2 * (sideSupport_GlobalCoords.y - joint_location[1]),
                        2 * (sideSupport_GlobalCoords.z - joint_location[2]))
         sideSupport_mirror = sideSupport.translate(translation) # translate a copy of the side support by the translation
-        # Export sideSupport_mirror to STL file
-        side_support_mirror_path = os.path.join(export_dir, f"side_support_mirror_{i+1}.stl")
-        exporters.export(sideSupport_mirror, side_support_mirror_path)
-        generated_files.append(side_support_mirror_path)
         
-    
-    
-    
-    
+        # Export to STL and .step files
+        sideSupport_mirror_path_stl = os.path.join(export_dir, f"joint_{i+1}_sideSupport_mirror.stl")
+        sideSupport_mirror_path_step = os.path.join(export_dir, f"joint_{i+1}_sideSupport_mirror.step")
+        exporters.export(sideSupport_mirror, sideSupport_mirror_path_stl)
+        exporters.export(sideSupport_mirror, sideSupport_mirror_path_step)
+        generated_files.append(sideSupport_mirror_path_stl)
+        generated_files.append(sideSupport_mirror_path_step)
+
+
         ## Baseplate Cuts
         bottomTab_reliefs = ( # creating a separate object here so we can use it for cutting the bottom plate
             bottomTabWorkPlane
@@ -249,15 +258,19 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
         
         #show_object(sideSupport)######################################################################  DELETE ME BEFORE DEPLOY
         #show_object(sideSupport_mirror)######################################################################  DELETE ME BEFORE DEPLOY
-        #show_object(jointPlate)######################################################################  DELETE ME BEFORE DEPLOY
+        #show_object(facePlate)######################################################################  DELETE ME BEFORE DEPLOY
     
     #basePlate = basePlate.edges("|Z").fillet(filletRelief) # Apply fillet to baseplate edges   
     #show_object(basePlate)######################################################################  DELETE ME BEFORE DEPLOY
-    # Export basePlate to STL file
-    base_plate_path = os.path.join(export_dir, "base_plate.stl")
-    exporters.export(basePlate, base_plate_path)
-    generated_files.append(base_plate_path)
     
+    # Export to STL and .step files
+    base_plate_path_stl = os.path.join(export_dir, f"base_plate.stl")
+    base_plate_path_step = os.path.join(export_dir, f"base_plate.step")
+    exporters.export(basePlate, base_plate_path_stl)
+    exporters.export(basePlate, base_plate_path_step)
+    generated_files.append(base_plate_path_stl)
+    generated_files.append(base_plate_path_step)
+
     print("All parts have been generated and exported.")
     return generated_files
 
