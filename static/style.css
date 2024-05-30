@@ -1,5 +1,5 @@
 body {
-    overflow: hidden;
+    
     margin: 0px;
     font-family: 'IBM Plex Mono';
     background-color: black;
@@ -94,3 +94,54 @@ input::-webkit-inner-spin-button {
 -webkit-appearance: none;
 margin: 0;
 }
+
+#helpButton, #home {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    background-color: #A9A9A9; /* Bootstrap info color */
+    color: white;
+    border: none;
+}
+#helpButton:hover, #home:hover {
+    background-color: #7c7c7c; /* Slightly darker shade on hover */
+    color: white;
+}
+
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+    width: 8px; /* Width of vertical scrollbar */
+    height: 8px; /* Height of horizontal scrollbar */
+}
+
+::-webkit-scrollbar-track {
+    background: #343a40; /* Dark background for the track */
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #6c757d; /* Dark grey color for the thumb */
+    border-radius: 10px; /* Rounded corners for the thumb */
+    border: 2px solid #343a40; /* Adds padding around thumb and matches the track color */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #5a6268; /* Slightly darker grey on hover */
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin; /* Thin scrollbar */
+    scrollbar-color: #6c757d #343a40; /* Thumb color and track color */
+}
+
+
+/* Setting Image Size */
+.content-section img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 80%;
+}
+

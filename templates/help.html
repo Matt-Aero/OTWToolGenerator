@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Links -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@700&display=swap" rel="stylesheet">
+    <title>Help</title>
+    <style>
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1em;
+        }
+        table, th, td {
+            border: 1px solid rgb(255, 255, 255);
+            padding: 0.5em;
+        }
+        th, td {
+            text-align: center;
+        }
+        body {
+            margin: 0px;
+            font-family: 'Arial', sans-serif;
+            background-color: rgb(22, 22, 22);
+            color: rgb(255, 255, 255);
+        }
+        .container {
+            max-width: 100ch;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <a href="{{ url_for('main') }}" class="btn btn-info btn-sm" id="home">Home</a>
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">Help Page</h1>
+        
+        <div class="content-section">
+            <p>
+                <strong>OTW Tool Generator</strong> (OTG) aims to streamline tooling creation for orbital tube welded assemblies and reduce modeling errors leading to costly go-backs during manufacturing.
+            </p>
+            <p>
+                When tubing is welded to tees, spools, or other tubes the clocking of the weld joint oftentimes needs to be controlled. This is where tooling is used to constrain the end points of the tubing assembly during the welding process.
+            </p>
+            <p>
+                OTW Tool Generator leaves the high-level design of the tool in the designer’s hands, while rapidly producing production-ready .step files with tab+slot features, adjustable tolerancing, and material thickness. Simply input the location and vector of each end point and press go. OTG generates flat .step part files that can be sent to a waterjet or laser-cutting house and then assembled.
+            </p>
+            <p>
+                Thank you for using OTW Tool Generator during its development. If you have any feedback or need help, please reach out to <a href="mailto:otwtoolgenerator@gmail.com">otwtoolgenerator@gmail.com</a>.
+            </p>
+        </div>
+
+        <div class="content-section">
+            <h2 class="mt-5">Workflow Example</h2>
+
+            <p>
+                This tutorial walks through how to use OTG with a simple ¼” flared tubing assembly, containing a welded tee. Note: OTG only supports ¼, ½, and 1 flared joint assemblies at this time.
+            </p>
+            <p>
+                <strong>1.</strong> From your favorite CAD software, position the OTW assembly above the XY plane. The XY plane representing the workbench or tabletop for the tooling. The Z axis should point upwards, opposite the gravity vector. Note that you may need to add suitable end fittings or constraints to interface with the tubing. Shown below are through-wall fittings (PN: 50715K581 from McMaster-Carr) which have extended threaded shafts for fitting through panels.
+            </p>
+            <img src="{{ url_for('static', filename='assets/assembly_above_workbench.png') }}" alt="Part above workbench" style="width: 30em; height: auto;">
+        </div>
+
+        <div class="content-section">
+            <p>
+                <strong>2.</strong> Record the location (X,Y,Z) and pointing vector (X,Y,Z) of each of the desired joint locations. The location should be measured in millimeters at the center of the face where you want the tool placed. In this example, the location is measured on the end fittings, near the hex face.
+            </p>
+            <p>
+                The joint data for this sample assembly is shown in the table below:
+            </p>
+            <img src="{{ url_for('static', filename='assets/joint_selection.png') }}" alt="Joint selection" style="width: 30em; height: auto;">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Joint #</th>
+                            <th>Location (X,Y,Z) [mm]</th>
+                            <th>Vector (X,Y,Z)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>97.625, -72.098, 160.000</td>
+                            <td>0, -1, 0</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>-97.625, -72.098, 160.000</td>
+                            <td>0, -1, 0</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>-35.569, 150.354, 126.050</td>
+                            <td>-7.519, 11.146, -7.176</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <p>
+                
+            </p>
+            <p>
+                <strong>3.</strong> (Optional) Export the tubing assembly as an .stl file for visualization in the OTG web-application.
+            </p>
+            <p>
+                <strong>4.</strong> In the OTW Tool Generator web application, input the joint location and vector data from above. Additionally, the exported .stl file of the assembly can be loaded for visualization, however, this is optional.
+            </p>
+            <img src="{{ url_for('static', filename='assets/joint_data_webpage.png') }}" alt="Joint data in the webpage" style="width: 60em; height: auto;">
+        </div>
+
+        <div class="content-section">
+            <p>
+                <strong>5.</strong> Configure the “tab+slot clearance” and “material thickness” parameters. Tab+slot clearance defines the gap in millimeters all around the material tabs. This can help to ensure waterjet and/or 3D printed assemblies fit together. The default value is 0.25mm.
+            </p>
+            <p>
+                <strong>6.</strong> Press “Generate Tooling” to see generated files displayed on screen. The export button can be used to export the files.
+            </p>
+            <img src="{{ url_for('static', filename='assets/final_assembly.png') }}" alt="Final assembly" style="width: 60em; height: auto;">
+        </div>
+
+        <div class="content-section">
+            <p>    
+            </p>
+            <h2>What’s next?</h2>
+            
+            <p>
+                After generating the part files, you can send them directly to a manufacturing house to be waterjet or laser-cut. Additionally, you can import the parts into your CAD software and assign them part numbers for tracking in your own part modeling environment. Due to the tab+slot geometry, welding out the final assembly is easy.
+            </p>
+        </div>
+    </div>
+    <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+</body>
+</html>

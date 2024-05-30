@@ -7,17 +7,15 @@ let upVector = new THREE.Vector3(0, 0, 1);
 let renderer, scene, camera, controls, currentMeshes = [];
 let uploadedFile = null;
 var gridEdgeLength = 3000; // mm
-var gridSpacing = 100; // mm
+var gridSpacing = 100; // mm, initial grid spacing
 const material_tube = new THREE.MeshMatcapMaterial({ color: 0xFF8600 });
 const material_tool = new THREE.MeshMatcapMaterial({ color: 0xB0B0B0 });
 
 var materialIndex = 0; // Counter to keep track of the material index
 
 document.addEventListener('DOMContentLoaded', () => {
-
     init();
     animate();
-
     function init() {
         THREE.Object3D.DefaultUp = upVector;
 
@@ -33,8 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let map = document.getElementById('threejsDisplay');
         let mapDimensions = map.getBoundingClientRect();
-        camera = new THREE.PerspectiveCamera(50, mapDimensions.width / mapDimensions.height, 1, 10000);
-        camera.position.set(1000, 1000, 1000); // Adjust camera position
+        camera = new THREE.PerspectiveCamera(50, mapDimensions.width / mapDimensions.height, 1, 100000);
+        //camera = new THREE.OrthographicCamera( -mapDimensions.width, mapDimensions.width, mapDimensions.height, -mapDimensions.height, .1, 100000 );
+        camera.position.set(500, 500, 500); // Adjust camera position
         camera.up.copy(upVector); // Set camera up direction
         camera.lookAt(new THREE.Vector3(0, 0, 0)); // Ensure camera looks at the origin
         scene.add(camera);
@@ -188,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         jointContainer.innerHTML = `
             <small class="font-weight-bold" style="position: absolute; top: -10px; left: 10px; background: black; padding: 0 5px;">JOINT ${jointCount}</small>
             <div class="form-group mb-2">
-                <select class="form-control form-control-sm" name="jointType${jointCount}" style="appearance: none;">
+                <select class="form-control form-control-sm" id="jointType${jointCount}" name="jointType${jointCount}" style="appearance: none;">
                     <option value="" disabled selected>-Select Joint Type-</option>
                     <option value="1/4">Flared 1/4</option>
                     <option value="1/2">Flared 1/2</option>
@@ -196,18 +195,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 </select>
             </div>
             <div class="form-group d-flex align-items-center mb-2">
-                <label for="xInput${jointCount}" class="me-2">Location [mm]</label>
+                <label for="xInput${jointCount}" class="me-2" style="width: 49em;">Location</label>
                 <input type="text" class="form-control form-control-sm me-2" name="xInput${jointCount}" placeholder="X">
                 <input type="text" class="form-control form-control-sm me-2" name="yInput${jointCount}" placeholder="Y">
                 <input type="text" class="form-control form-control-sm" name="zInput${jointCount}" placeholder="Z">
+                <span class="small ms-2" style="width: 35em;">[mm]</span>
             </div>
             <div class="form-group d-flex align-items-center">
-                <label for="nxInput${jointCount}" class="me-2">Normal Vector</label>
+                <label for="nxInput${jointCount}" class="me-2" style="width: 49em;">Vector</label>
                 <input type="text" class="form-control form-control-sm me-2" name="nxInput${jointCount}" placeholder="X">
                 <input type="text" class="form-control form-control-sm me-2" name="nyInput${jointCount}" placeholder="Y">
                 <input type="text" class="form-control form-control-sm" name="nzInput${jointCount}" placeholder="Z">
+                <span class="small ms-2" style="width: 35em;">[-]</span>
             </div>
         `;
+
 
         document.getElementById('jointsContainer').appendChild(jointContainer);
     }
@@ -227,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('toleranceSlider').addEventListener('input', function() {
         var value = parseFloat(this.value).toFixed(2);
         document.getElementById('toleranceValue').value = value;
-        document.getElementById('toleranceInput').value = value;
     });
 
     document.getElementById('toleranceValue').addEventListener('blur', function() {
@@ -239,63 +240,52 @@ document.addEventListener('DOMContentLoaded', () => {
             updateToleranceValue();
         }
     });
+
     function updateToleranceValue() {
         let val_max = 1;
         let val_min = 0;
         var value = parseFloat(document.getElementById('toleranceValue').value);
         if (value >= val_min && value <= val_max) {
             document.getElementById('toleranceSlider').value = value.toFixed(2);
-            document.getElementById('toleranceValue').value = value.toFixed(2);
-            document.getElementById('toleranceInput').value = value.toFixed(2);
         } else if (value > val_max) {
             document.getElementById('toleranceValue').value = (val_max).toFixed(2);
             document.getElementById('toleranceSlider').value = (val_max).toFixed(2);
-            document.getElementById('toleranceInput').value = (val_max).toFixed(2);
         } else if (value < val_min) {
             document.getElementById('toleranceValue').value = (val_min).toFixed(2);
             document.getElementById('toleranceSlider').value = (val_min).toFixed(2);
-            document.getElementById('toleranceInput').value = (val_min).toFixed(2);
         }
     }
 
-
     // JavaScript to sync slider and text input for the thickness input slider
-    
     document.getElementById('thicknessSlider').addEventListener('input', function() {
         var value = parseFloat(this.value).toFixed(2);
         document.getElementById('thicknessValue').value = value;
-        document.getElementById('thicknessInput').value = value;
     });
-    // only updating function when the user clicks away from this box
+
     document.getElementById('thicknessValue').addEventListener('blur', function() {
         updateThicknessValue();
     });
+
     document.getElementById('thicknessValue').addEventListener('keyup', function(event) {
         if (event.key === 'Enter') {
             updateThicknessValue();
         }
     });
+
     function updateThicknessValue() {
         let val_max = 25.4;
         let val_min = 1;
         var value = parseFloat(document.getElementById('thicknessValue').value);
         if (value >= val_min && value <= val_max) {
             document.getElementById('thicknessSlider').value = value.toFixed(2);
-            document.getElementById('thicknessValue').value = value.toFixed(2);
-            document.getElementById('thicknessInput').value = value.toFixed(2);
         } else if (value > val_max) {
             document.getElementById('thicknessValue').value = (val_max).toFixed(2);
             document.getElementById('thicknessSlider').value = (val_max).toFixed(2);
-            document.getElementById('thicknessInput').value = (val_max).toFixed(2);
         } else if (value < val_min) {
             document.getElementById('thicknessValue').value = (val_min).toFixed(2);
             document.getElementById('thicknessSlider').value = (val_min).toFixed(2);
-            document.getElementById('thicknessInput').value = (val_min).toFixed(2);
         }
     }
-
-
-
 
 
     // Form validation

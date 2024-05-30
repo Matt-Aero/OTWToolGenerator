@@ -2,27 +2,45 @@ from flask import Flask, request, redirect, flash, render_template, send_from_di
 import os
 import tempfile
 import zipfile
+import shutil
 from CADQuery import Joint, flaredJoint, generateSupports
 
-# Temporary folder for file uploads and generated files
-UPLOAD_FOLDER = tempfile.gettempdir()
-GENERATED_FOLDER = os.path.join(tempfile.gettempdir(), 'generated_files')
+app = Flask(__name__)
+app.secret_key = 'supersecretkey__2'
+app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
+app.config['GENERATED_FOLDER'] = tempfile.gettempdir()
 ALLOWED_EXTENSIONS = {'stl'}
 
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.secret_key = 'supersecretkey__2'
-
-# Helper function to check file extension
-def allowed_file(filename):
+def allowed_file(filename):  # Helper function to check file extension
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def deleteFiles():
+    user_folder = session.get('user_folder')
+    for root, dirs, files in os.walk(user_folder):
+        for file in files:
+            file_path = os.path.join(root, file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)  # Delete the file
+            except Exception as e:
+                print(f"Error deleting file {file_path}: {e}")
+
+@app.route('/help')
+def help():
+    return render_template('help.html')
 
 @app.route('/')
 def main():
+    # Create temp. Dir for user files
+    if 'user_folder' not in session:
+        session['user_folder'] = tempfile.mkdtemp()
+    deleteFiles() # Delete any previously stored files
     return render_template('index.html')
 
 @app.route('/process_joints', methods=['POST'])
 def process_joints():
+    user_folder = session.get('user_folder')
+    deleteFiles() # Delete any previously stored files
     joint_data = []
     joint_count = len(request.form) // 7  # Each joint has 7 inputs: 1 jointType, 3 location, 3 vector
     for i in range(1, joint_count + 1):
@@ -37,49 +55,37 @@ def process_joints():
             request.form.get(f'nyInput{i}'),
             request.form.get(f'nzInput{i}')
         ]
-        
-        # Check if all fields are present
-        if not all([joint_type, *location, *normal_vector]):
+        if not all([joint_type, *location, *normal_vector]):  # Check if all fields are present
             flash('Incomplete joint data')
-            return redirect(url_for('main'))
-        
+            return jsonify({'Incomplete joint data'})
         location = [float(loc) for loc in location]
         normal_vector = [float(vec) for vec in normal_vector]
         flare_size = joint_type  # No need to change anything here since form options are fixed
-        
         joint_data.append({
             'location': location,
             'normal_vector': normal_vector,
             'flare_size': flare_size
         })
-    
     session['joint_data'] = joint_data  # Store serializable data in the session
-    
     joint_data = session.get('joint_data', [])
-    
-    # Reconstruct the flaredJoint objects from the session data
-    joints = [flaredJoint(data['location'], data['normal_vector'], data['flare_size']) for data in joint_data]
-    
-    # Get the tolerance value from the form
-    tolerance = float(request.form.get("toleranceValue"))  # Default to 0.25 if not provided
-    # Get the tolerance value from the form
-    plateThk = float(request.form.get("thicknessValue"))  # Default to 0.25 if not provided
-
-    generated_files = generateSupports(joints, GENERATED_FOLDER, tolerance, plateThk)  # Call the function to generate the tooling files
-    
+    joints = [flaredJoint(data['location'], data['normal_vector'], data['flare_size']) for data in joint_data]  # Reconstruct the flaredJoint objects from the session data
+    tolerance = float(request.form.get("toleranceValue"))  # Get the tolerance value from the form
+    plateThk = float(request.form.get("thicknessValue"))  # Get the thickness value from the form
+    generated_files = generateSupports(joints, user_folder, tolerance, plateThk)  # Call the function to generate the tooling files
     generated_files = [os.path.basename(f) for f in generated_files]  # Get only the filenames
-    
     return jsonify({'generated_files': generated_files})
 
 @app.route('/generated/<filename>')
 def serve_generated_file(filename):
-    return send_from_directory(GENERATED_FOLDER, filename)
+    user_folder = session.get('user_folder')
+    return send_from_directory(user_folder, filename)
 
 @app.route('/download_zip')
 def download_zip():
-    zip_path = os.path.join(GENERATED_FOLDER, 'generated_files.zip')
+    user_folder = session.get('user_folder')
+    zip_path = os.path.join(user_folder, 'generated_files.zip')
     with zipfile.ZipFile(zip_path, 'w') as zipf:
-        for root, dirs, files in os.walk(GENERATED_FOLDER):
+        for root, dirs, files in os.walk(user_folder):
             for file in files:
                 if file.endswith('.stl') and 'generated_files.zip' not in file:
                     zipf.write(os.path.join(root, file), file)

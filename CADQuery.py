@@ -19,10 +19,12 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
     # Generates all 3x support pieces for a single joint
     
     ## General Parameters
+    radiusRelief = 1.5  # radius of the radii used to relief the waterjet corners
+    #filletRelief = 3  # fillet size of the blending for the radius reliefs
     filletRadius = 10 #
-    tabTol = tolerance # mm, additional gap added on all sides of the tab+slots
+    tabTol = 2*tolerance # mm, additional gap added on all sides of the tab+slots
     holeTolerance = tabTol # mm
-    z_plate_offset = .1 # how far off the table to offset the tabs. 1mm usually
+    z_plate_offset = .3 # how far off the table to offset the tabs. 1mm usually
     plateThk = plateThk
     in2m = 25.4 # conversion variable for easily converting in->mm
     purgeHoleID = 7 # mm, diameter of the purge hole added to each plate
@@ -32,9 +34,9 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
     # zoffset - the offset to apply between the where the user specifies the tube end location to be, and where we actually want to place the extrusion relative to this
 
     flare_sizes = {
-        "1/4": {"hole_size": 0.25 * 25.4 + holeTolerance, "zoffset": 0.05},
-        "1/2": {"hole_size": 0.5 * 25.4 + holeTolerance, "zoffset": 0.07},
-        "1": {"hole_size": 1.0 * 25.4 + holeTolerance, "zoffset": 0.1}
+        "1/4": {"hole_size": 0.25 * 25.4 + holeTolerance, "zoffset": 0},
+        "1/2": {"hole_size": 0.5 * 25.4 + holeTolerance, "zoffset": 0},
+        "1": {"hole_size": 1.0 * 25.4 + holeTolerance, "zoffset": 0}
     }
 
     os.makedirs(export_dir, exist_ok=True)  # Create directory if it doesn't exist
@@ -82,6 +84,15 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
         # create a plane where the joint is
         joint_location = joints[i].location
         joint_normal_vector = joints[i].normal_vector
+        
+        # Update the location with an offset to account for the plate thickness
+        joint_normal_vector_norm = joint_normal_vector / np.linalg.norm(joint_normal_vector)
+        joint_location = joint_location+joint_normal_vector_norm*plateThk/2
+
+        # Replace zero values in normal_vector with small non-zero
+        joint_normal_vector = np.array([0.0001 if component == 0 else component for component in joint_normal_vector])
+        print(joint_normal_vector)
+
         jointPlane = cq.Plane(tuple(joint_location), tuple([0, 0, 1]), tuple(joint_normal_vector))
         jointWorkPlane = cq.Workplane(jointPlane) # Create a workplane using the defined Plane
     
@@ -115,8 +126,9 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
                 jointWorkPlane
                 .rect(plateHeight, plateWidth)
                 .circle(flareHoleSize / 2)
-                .extrude(plateThk)
+                .extrude(plateThk/2, both=True)  # symmetric extrude
             )
+            
         
         tabWidth = plateThk
         tabHeight = plateHeight / 2 # how long the tab is
@@ -125,14 +137,14 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             # Draw the side tab slots
             .moveTo(0, plateWidth / 2 + plateThk / 2)
             .rect(tabHeight, tabWidth)
-            .extrude(plateThk)
+            .extrude(plateThk/2, both=True)
         )
         sideTab_py = (
             jointWorkPlane
             # Draw the side tab slots
             .moveTo(0, -plateWidth / 2 - plateThk / 2)
             .rect(tabHeight, tabWidth)
-            .extrude(plateThk)
+            .extrude(plateThk/2, both=True)
         )
     
         jointPlate = jointPlate.union(sideTab_ny)
@@ -149,11 +161,7 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
         sidePlane = cq.Plane(sidePlaneGlobalCoords, tuple(sidePlaneXdir), tuple([0, 0, 1])) # create the new plane
         sideWorkPlane = cq.Workplane(sidePlane) # Create a workplane using the defined Plane
     
-        # find angle between joint normal_vector and the global z
-        theta = math.atan(joint_normal_vector[2] / joint_normal_vector[1])
-        x_box, y_box = coordTransform(theta, plateHeight / 2, plateThk / 2)
         tabHeightMax = tabHeight / 2 + plateThk
-    
         sideSupport = (
             sideWorkPlane
             .transformed(offset=cq.Vector(0, 0, 0), rotate=cq.Vector(90, 0, 0)) # rotating 90deg so we are sketching on the side
@@ -163,30 +171,45 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             .lineTo(tabHeightMax, -joint_location[2] + plateThk)
             .close()
             .extrude(-plateThk)
-            .edges("|Z").fillet(filletRadius) # only fillet the edges parallel to Z
         )
+
+        bottomTabWorkPlane = sideWorkPlane.transformed(offset=cq.Vector(0,plateThk/2,-joint_location[2] + plateThk / 2 + z_plate_offset), rotate=cq.Vector(90, 0, 0))
         bottomTab = ( # creating a separate object here so we can use it for cutting the bottom plate
-            sideWorkPlane
-            .transformed(offset=cq.Vector(0, 0, 0), rotate=cq.Vector(90, 0, 0)) # rotating 90deg so we are sketching on the side
-            .moveTo(0, -joint_location[2] + plateThk / 2 + z_plate_offset)
+            bottomTabWorkPlane
             .rect(tabHeight, tabWidth)
-            .extrude(-plateThk)
+            .extrude(-plateThk/2, both=True)
         )
         sideSupport = sideSupport.union(bottomTab)
     
         ##################
         # Create Toleranced tab object for cutting from the side support
-        if tabTol > 0: # Prevent 0-inputs from breaking due to inf thin geometry
-            tab_toleranced = sideTab_py.shell(tabTol)
-            sideSupport = sideSupport.cut(tab_toleranced).cut(sideTab_py) # Need to subtract out the un-toleranced shape out too, since the shell is a shell! it won't subtract out the center
-        else:
-            sideSupport = sideSupport.cut(sideTab_py)  # only cutout the untoleranced shape if tol=0
+        drawAxes(jointWorkPlane)
+        # Method: Draw the circles where you want them. Apply rotation to all items in stack using rotateaboutcenter, then cut into side pieces
+        sideTab_reliefs = (
+            jointWorkPlane
+            .rect(tabHeight+tabTol, tabWidth+tabTol, forConstruction=True)
+            .vertices()  # Select all vertices of the rectangle
+            .circle(radiusRelief)  # Add circles at each vertex
+            .extrude(100)  # Extrude the circles
+            .rotate(jointWorkPlane.plane.toWorldCoords((0, 0, 0)), jointWorkPlane.plane.toWorldCoords((1, 0, 0)), 90)
+        )
+        sideTab_py_tol = (
+            jointWorkPlane
+            .rect(tabHeight+tabTol, tabWidth+tabTol, forConstruction=False)
+            .extrude(100)  # Extrude the circles
+            .rotate(jointWorkPlane.plane.toWorldCoords((0, 0, 0)), jointWorkPlane.plane.toWorldCoords((1, 0, 0)), 90)
+        )
+        sideTab_py_tol = sideTab_py_tol.union(sideTab_reliefs)#.edges("#Z").fillet(filletRelief)
 
+        #drawAxes(jointWorkPlane)     ############################################
+        #show_object(sideTab_py_tol)  ######################################################################  DELETE ME BEFORE DEPLOY
+        
+        sideSupport = sideSupport.cut(sideTab_py_tol).cut(sideTab_py_tol) # Need to subtract out the un-toleranced shape out too, since the shell is a shell! it won't subtract out the center
+        
         # Export sideSupport to STL file
         side_support_path = os.path.join(export_dir, f"side_support_{i+1}.stl")
         exporters.export(sideSupport, side_support_path)
         generated_files.append(side_support_path)
-
         # Mirroring the side support
         sideSupport_GlobalCoords = jointPlane.toWorldCoords((0, plateWidth / 2 + plateThk / 2)) # first get the location of the existing side support in global coordinates
         translation = (2 * (sideSupport_GlobalCoords.x - joint_location[0]), # now, find the delta from the center of the joint
@@ -197,15 +220,39 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
         side_support_mirror_path = os.path.join(export_dir, f"side_support_mirror_{i+1}.stl")
         exporters.export(sideSupport_mirror, side_support_mirror_path)
         generated_files.append(side_support_mirror_path)
+        
     
-        # Now take cuts from the baseplate
-        if tabTol > 0: # Prevent 0-inputs from breaking due to inf thin geometry
-            bottomTab_toleranced = bottomTab.shell(tabTol)
-        else:
-            bottomTab_toleranced = bottomTab
-        basePlate = basePlate.cut(bottomTab_toleranced).cut(bottomTab)
-        basePlate = basePlate.cut(bottomTab_toleranced.translate(translation)).cut(sideSupport_mirror) # mirroring to get the other side as well
     
+    
+    
+        ## Baseplate Cuts
+        bottomTab_reliefs = ( # creating a separate object here so we can use it for cutting the bottom plate
+            bottomTabWorkPlane
+            .transformed(offset=cq.Vector(0, 20, 0), rotate=cq.Vector(90, 0, 0)) # rotating 90deg so we are sketching on the side
+            .rect(tabHeight+tabTol, tabWidth+tabTol, forConstruction=True)
+            .vertices()
+            .circle(radiusRelief)  # Add circles at each vertex
+            .extrude(50)  # Extrude the circles
+            #.rotate(sideWorkPlane.plane.toWorldCoords((0, 0, 0)), sideWorkPlane.plane.toWorldCoords((1, 0, 0)), 90)
+        )
+
+        bottomTab_box_tol = (
+            bottomTabWorkPlane
+            .transformed(offset=cq.Vector(0, 20, 0), rotate=cq.Vector(90, 0, 0)) # rotating 90deg so we are sketching on the side
+            .rect(tabHeight+tabTol, tabWidth+tabTol)
+            .extrude(50)
+            #.rotate(sideWorkPlane.plane.toWorldCoords((0, 0, 0)), sideWorkPlane.plane.toWorldCoords((1, 0, 0)), 90)
+        )
+
+        basePlate = basePlate.cut(bottomTab_box_tol).cut(bottomTab_reliefs)
+        basePlate = basePlate.cut(bottomTab_box_tol.translate(translation)).cut(bottomTab_reliefs.translate(translation))
+        
+        #show_object(sideSupport)######################################################################  DELETE ME BEFORE DEPLOY
+        #show_object(sideSupport_mirror)######################################################################  DELETE ME BEFORE DEPLOY
+        #show_object(jointPlate)######################################################################  DELETE ME BEFORE DEPLOY
+    
+    #basePlate = basePlate.edges("|Z").fillet(filletRelief) # Apply fillet to baseplate edges   
+    #show_object(basePlate)######################################################################  DELETE ME BEFORE DEPLOY
     # Export basePlate to STL file
     base_plate_path = os.path.join(export_dir, "base_plate.stl")
     exporters.export(basePlate, base_plate_path)
@@ -218,3 +265,17 @@ def coordTransform(theta, x, y): # transforming 2d coordinates from into another
     xNew = x * math.cos(theta) + y * math.sin(theta)
     yNew = y * math.cos(theta) - x * math.sin(theta)
     return xNew, yNew
+
+
+# Function to draw axis
+def drawAxes(workPlane):   
+    # Draw axes
+    wp = workPlane
+    axis_length = 20
+    axisThk = 5
+    x_axis = wp.lineTo(axis_length, 0).close().extrude(axisThk)
+    y_axis = wp.moveTo(0, 0).lineTo(0, axis_length).close().extrude(axisThk)
+    z_axis = wp.moveTo(0, 0).circle(axisThk*.2).extrude(axis_length)
+    #show_object(x_axis, name="X-axis", options={"color": "red"})
+    #show_object(y_axis, name="Y-axis", options={"color": "green"})
+    #show_object(z_axis, name="Z-axis", options={"color": "blue"})
