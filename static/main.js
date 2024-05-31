@@ -214,18 +214,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 </select>
             </div>
             <div class="form-group d-flex align-items-center mb-2">
-                <label for="xInput${jointCount}" class="me-2" style="width: 49em;">Location</label>
+                <label for="xInput${jointCount}" class="me-2" style="width: 30em;">Location</label>
                 <input type="text" class="form-control form-control-sm me-2" name="xInput${jointCount}" placeholder="X">
                 <input type="text" class="form-control form-control-sm me-2" name="yInput${jointCount}" placeholder="Y">
                 <input type="text" class="form-control form-control-sm" name="zInput${jointCount}" placeholder="Z">
-                <span class="small ms-2" style="width: 35em;">[mm]</span>
+                <span class="small ms-2" style="width: 15em;">[mm]</span>
             </div>
             <div class="form-group d-flex align-items-center">
-                <label for="nxInput${jointCount}" class="me-2" style="width: 49em;">Vector</label>
+                <label for="nxInput${jointCount}" class="me-2" style="width: 30em;">Vector</label>
                 <input type="text" class="form-control form-control-sm me-2" name="nxInput${jointCount}" placeholder="X">
                 <input type="text" class="form-control form-control-sm me-2" name="nyInput${jointCount}" placeholder="Y">
                 <input type="text" class="form-control form-control-sm" name="nzInput${jointCount}" placeholder="Z">
-                <span class="small ms-2" style="width: 35em;">[-]</span>
+                <span class="small ms-2" style="width: 15em;">[-]</span>
             </div>
         `;
 

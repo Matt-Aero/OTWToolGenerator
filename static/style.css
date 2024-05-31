@@ -22,10 +22,10 @@ label {
     position: absolute;
     top: 0;
     left: 0;
-    max-width: 20em;
+    max-width: 25em;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.7); /* Slightly transparent */
-    padding: 1em;
+    padding: .5em;
     overflow-y: auto;
     border-right: 2px solid #A9A9A9;
 }
@@ -81,13 +81,6 @@ input:focus::placeholder {
     color: transparent;
 }
 
-#addJointButton {
-text-align: center;
-background-color: rgb(255, 255, 255);
-color: black;
-border-color: black;
-}
-
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -103,11 +96,14 @@ margin: 0;
     background-color: #A9A9A9; /* Bootstrap info color */
     color: white;
     border: none;
+    padding: .75em .75em;
+    border-radius: 0.5em; /* Optional: for rounded corners */
 }
 #helpButton:hover, #home:hover {
     background-color: #7c7c7c; /* Slightly darker shade on hover */
     color: white;
 }
+
 
 
 /* Scrollbar styles */
@@ -160,3 +156,33 @@ margin: 0;
 }
 
 
+
+input[type=range]::-webkit-slider-thumb {
+    background: #A9A9A9; /* Change the color here to grey */
+    cursor: pointer;
+    -webkit-appearance: none;
+  }
+
+
+/* custom add joint buttons */
+#addJointButton {
+    text-align: center;
+    background-color: rgb(255, 255, 255);
+    color: black;
+    border-color: black;
+    transition: background-color 0.3s, color 0.3s; /* Add transition for smooth effect */
+}
+#addJointButton:hover {
+    background-color: rgb(230, 230, 230); /* Slightly darker background */
+    color: rgb(30, 30, 30); /* Slightly darker text */
+}
+#removeJointButton {
+    text-align: center;
+    background: rgba(0, 0, 0, 0);
+    color: rgb(255, 255, 255);
+    transition: background-color 0.3s, color 0.3s; /* Add transition for smooth effect */
+}
+#removeJointButton:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* Slightly visible background */
+    color: rgb(230, 230, 230); /* Slightly darker text */
+}
