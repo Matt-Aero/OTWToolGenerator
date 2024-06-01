@@ -8,6 +8,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@700&display=swap" rel="stylesheet">
 </head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-43MLJHEVEM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-43MLJHEVEM');
+</script>
 <body>
     <!-- Help Button -->
     <a href="{{ url_for('help') }}" class="btn btn-info btn-sm" id="helpButton" target="_blank">About</a>
@@ -20,7 +29,7 @@
         </div>
         <div class="mb-4">
             <form>
-                <label for="fileUpload" class="small form-label font-weight">Select Assembly File (.stl):</label>
+                <label for="fileUpload" class="small form-label font-weight">Select Assembly File (.stl, 5mb max):</label>
                 <input class="form-control form-control-sm" id="fileUpload" type="file" accept=".stl">
             </form>
         </div>

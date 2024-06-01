@@ -58,9 +58,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fileInput) {
             fileInput.addEventListener('change', function(event) {
                 uploadedFile = event.target.files[0];
-                loadFileUpload(uploadedFile);
+
+                // Create a FormData object and append the selected file
+                const formData = new FormData();
+                formData.append('file', uploadedFile);
+
+                // Perform the file upload via Fetch API
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        loadFileUpload(uploadedFile);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while uploading the file.');
+                });
             });
         }
+
 
         // listening for user to press the generate tooling button
         document.getElementById('jointsForm').addEventListener('submit', function(event) {
@@ -107,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function loadFileUpload(file) {
         if (file) {
+            clearScene(); // Clear the scene before loading new files
             const loader = new STLLoader();
             const url = URL.createObjectURL(file);
             loader.load(url, function(geometry) {

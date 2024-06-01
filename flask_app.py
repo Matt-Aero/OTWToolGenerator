@@ -9,10 +9,31 @@ app = Flask(__name__)
 app.secret_key = '5d536a3d438345fe076b77d8ff8e09405817b7cc462dcb466b592b75c2978ce7'
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 app.config['GENERATED_FOLDER'] = tempfile.gettempdir()
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1000 * 1000 # max file size of 2mb
 ALLOWED_EXTENSIONS = {'stl'}
 
-def allowed_file(filename):  # Helper function to check file extension
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = file.filename
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return jsonify({"message": "File uploaded successfully"}), 200
+    return
 
 def deleteFiles():
     user_folder = session.get('user_folder')
