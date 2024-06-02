@@ -58,6 +58,10 @@ def main():
     deleteFiles() # Delete any previously stored files
     return render_template('index.html')
 
+@app.route('/design')
+def design():
+    return render_template('design.html')
+
 @app.route('/process_joints', methods=['POST'])
 def process_joints():
     user_folder = session.get('user_folder')

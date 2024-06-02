@@ -93,14 +93,15 @@ margin: 0;
     top: 10px;
     right: 10px;
     z-index: 1000;
-    background-color: #A9A9A9; /* Bootstrap info color */
+    background-color: #00c062; /* Bootstrap info color */
     color: white;
     border: none;
     padding: .75em .75em;
     border-radius: 0.5em; /* Optional: for rounded corners */
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 #helpButton:hover, #home:hover {
-    background-color: #7c7c7c; /* Slightly darker shade on hover */
+    background-color: #009a4f; /* Slightly darker shade on hover */
     color: white;
 }
 
@@ -185,4 +186,33 @@ input[type=range]::-webkit-slider-thumb {
 #removeJointButton:hover {
     background-color: rgba(255, 255, 255, 0.1); /* Slightly visible background */
     color: rgb(230, 230, 230); /* Slightly darker text */
+}
+
+#generateToolingButton, #exportButton {
+    color: rgb(255, 255, 255);
+    border-color: rgb(255, 255, 255,0);
+}
+
+#generateToolingButton {
+    color: rgb(255, 255, 255);
+    border-color: rgb(255, 255, 255,0);
+    background-color: #00c062;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#generateToolingButton:hover {
+    background-color: #009a4f;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+#exportButton {
+    color: rgb(255, 255, 255);
+    border-color: rgb(255, 255, 255,0);
+    background-color: rgb(255, 255, 255,0);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#exportButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
 }
