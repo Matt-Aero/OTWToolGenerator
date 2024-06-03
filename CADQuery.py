@@ -15,6 +15,15 @@ class flaredJoint(Joint):
         self.flareSize = flareSize
         self.type = "flared"
 
+class flangeJoint(Joint):
+    def __init__(self, location, normal_vector, boltCircleDiameter, numBolts, boltHoleSize, clockingOffset):
+        super().__init__(location, normal_vector)
+        self.boltCircleDiameter = boltCircleDiameter
+        self.numBolts = numBolts
+        self.boltHoleSize = boltHoleSize
+        self.clockingOffset = clockingOffset
+        self.type = "flanged"
+
 def generateSupports(joints, export_dir, tolerance, plateThk):
     # Generates all 3x support pieces for a single joint
     
@@ -25,7 +34,6 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
     tabTol = 2*tolerance # mm, additional gap added on all sides of the tab+slots
     holeTolerance = 2*tolerance # mm
     z_plate_offset = .3 # how far off the table to offset the tabs. 1mm usually
-    plateThk = plateThk
     in2m = 25.4 # conversion variable for easily converting in->mm
     purgeHoleID = 7 # mm, diameter of the purge hole added to each plate
 
@@ -50,7 +58,7 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
     x_max = joints[0].location[0]
     y_min = joints[0].location[1]
     y_max = joints[0].location[1]
-
+    
     for j in range(numJoints):
         joint_location_x = joints[j].location[0]
         joint_location_y = joints[j].location[1]
@@ -62,11 +70,21 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             y_max = joint_location_y
         elif joint_location_y < y_min:
             y_min = joint_location_y
+            
+        # Defining the size to pad the baseplate by
+        if joints[j].type == "flared":
+            flareSize = joints[j].flareSize # diameter of the flare
+            size = flare_sizes[flareSize]['hole_size']
+        elif joints[j].type == "flanged":
+            size = joints[j].boltCircleDiameter
+        
+        if size>basePlatePadding:
+            basePlatePadding = size
     
-    x_max = x_max + basePlatePadding
-    x_min = x_min - basePlatePadding
-    y_max = y_max + basePlatePadding
-    y_min = y_min - basePlatePadding
+    x_max = x_max + basePlatePadding + plateThk*2
+    x_min = x_min - basePlatePadding - plateThk*2
+    y_max = y_max + basePlatePadding + plateThk*2
+    y_min = y_min - basePlatePadding - plateThk*2
     
     basePlate = (
         cq.Workplane("XY")
@@ -106,29 +124,49 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
         if joints[i].type == "flanged":
             boltHoleSize = joints[i].boltHoleSize
             boltCircleDiameter = joints[i].boltCircleDiameter
-            numbolts = joints[i].numBolts
-            plateWidth = boltCircleDiameter * 1.6
-            plateHeight = boltCircleDiameter * 1.35
+            numbolts = int(joints[i].numBolts)
+            clockingOffset = joints[i].clockingOffset # in deg. Note the first fastener points in +Z (global) for clockingOffset=0
+            plateWidth = (boltCircleDiameter+boltHoleSize) * 1.75
+            plateHeight = (boltCircleDiameter+boltHoleSize) * 1.5
             facePlate = (
                 jointWorkPlane
                 .rect(plateHeight, plateWidth)
                 .circle(purgeHoleID / 2)
-                .polygon(numbolts, boltCircleDiameter, True, False).vertices().circle(boltHoleSize / 2) # Draw the flange bolt holes
+                .extrude(plateThk/2, both=True)
             )
+            # Now create extrusions for the bolt holes
+            boltHoles = (
+                jointWorkPlane
+                .transformed(offset=cq.Vector(0, 0, 0), rotate=cq.Vector(0, 0, clockingOffset)) # rotating 90deg so we are sketching on the side
+                .polygon(numbolts, boltCircleDiameter, True, False).vertices()
+                .circle(boltHoleSize / 2) # Draw the flange bolt holes
+                .extrude(plateThk/2+5, both=True)
+                )
+            #show_object(boltHoles)
+            facePlate= facePlate.cut(boltHoles)
+            
         elif joints[i].type == "flared":
             flareSize = joints[i].flareSize # diameter of the flare
             flareHoleSize = flare_sizes[flareSize]['hole_size']
             flareZOffset = flare_sizes[flareSize]['zoffset']
-            plateWidth = flareHoleSize * 3.5
-            plateHeight = flareHoleSize * 3.5
-        
+            plateWidth = flareHoleSize * 4
+            plateHeight = flareHoleSize * 4
+            
             facePlate = (
                 jointWorkPlane
                 .rect(plateHeight, plateWidth)
                 .circle(flareHoleSize / 2)
                 .extrude(plateThk/2, both=True)  # symmetric extrude
             )
-
+        
+        
+        facePlate_forCut = (
+            jointWorkPlane
+            .transformed(offset=cq.Vector(0, 0, plateThk/2+plateThk), rotate=cq.Vector(0, 0, 0)) # rotating 90deg so we are sketching on the side
+            .rect(plateHeight*10, plateWidth*10)
+            .extrude(plateWidth*10, both=False)
+        )
+        
         
         tabWidth = plateThk
         tabHeight = plateHeight / 2 # how long the tab is
@@ -176,6 +214,8 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             .close()
             .extrude(-plateThk)
         )
+        
+        #sideSupport = sideSupport.cut(facePlate_forCut)
 
         bottomTabWorkPlane = sideWorkPlane.transformed(offset=cq.Vector(0,plateThk/2,-joint_location[2] + plateThk / 2 + z_plate_offset), rotate=cq.Vector(90, 0, 0))
         bottomTab = ( # creating a separate object here so we can use it for cutting the bottom plate
@@ -194,13 +234,13 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             .rect(tabHeight+tabTol, tabWidth+tabTol, forConstruction=True)
             .vertices()  # Select all vertices of the rectangle
             .circle(radiusRelief)  # Add circles at each vertex
-            .extrude(100)  # Extrude the circles
+            .extrude(plateWidth)  # Extrude the circles
             .rotate(jointWorkPlane.plane.toWorldCoords((0, 0, 0)), jointWorkPlane.plane.toWorldCoords((1, 0, 0)), 90)
         )
         sideTab_py_tol = (
             jointWorkPlane
             .rect(tabHeight+tabTol, tabWidth+tabTol, forConstruction=False)
-            .extrude(100)  # Extrude the circles
+            .extrude(plateWidth)  # Extrude the circles
             .rotate(jointWorkPlane.plane.toWorldCoords((0, 0, 0)), jointWorkPlane.plane.toWorldCoords((1, 0, 0)), 90)
         )
         sideTab_py_tol = sideTab_py_tol.union(sideTab_reliefs)#.edges("#Z").fillet(filletRelief)

@@ -3,7 +3,7 @@ import os
 import tempfile
 import zipfile
 import shutil
-from CADQuery import Joint, flaredJoint, generateSupports
+from CADQuery import Joint, flaredJoint, flangeJoint, generateSupports
 
 app = Flask(__name__)
 app.secret_key = '5d536a3d438345fe076b77d8ff8e09405817b7cc462dcb466b592b75c2978ce7'
@@ -65,40 +65,77 @@ def design():
 @app.route('/process_joints', methods=['POST'])
 def process_joints():
     user_folder = session.get('user_folder')
-    deleteFiles() # Delete any previously stored files
+    deleteFiles()  # Delete any previously stored files
     joint_data = []
-    joint_count = len(request.form) // 7  # Each joint has 7 inputs: 1 jointType, 3 location, 3 vector
+    joint_count = int(request.form.get('jointCount')) # Adjust joint_count calculation, excluding tolerance and thickness inputs
+    print("JOINT COUNT ***************************")
+    print(joint_count)
+    def sanitize_input(value):
+        if value:
+            return value.replace('−', '-')
+        return value
+
     for i in range(1, joint_count + 1):
         joint_type = request.form.get(f'jointType{i}')
         location = [
-            request.form.get(f'xInput{i}'),
-            request.form.get(f'yInput{i}'),
-            request.form.get(f'zInput{i}')
+            sanitize_input(request.form.get(f'xInput{i}')),
+            sanitize_input(request.form.get(f'yInput{i}')),
+            sanitize_input(request.form.get(f'zInput{i}'))
         ]
         normal_vector = [
-            request.form.get(f'nxInput{i}'),
-            request.form.get(f'nyInput{i}'),
-            request.form.get(f'nzInput{i}')
+            sanitize_input(request.form.get(f'nxInput{i}')),
+            sanitize_input(request.form.get(f'nyInput{i}')),
+            sanitize_input(request.form.get(f'nzInput{i}'))
         ]
-        if not all([joint_type, *location, *normal_vector]):  # Check if all fields are present
-            flash('Incomplete joint data')
-            return jsonify({'Incomplete joint data'})
-        location = [float(loc) for loc in location]
-        normal_vector = [float(vec) for vec in normal_vector]
-        flare_size = joint_type  # No need to change anything here since form options are fixed
-        joint_data.append({
-            'location': location,
-            'normal_vector': normal_vector,
-            'flare_size': flare_size
-        })
+
+        if joint_type == 'Flanged':
+            bolt_circle_diameter = sanitize_input(request.form.get(f'boltCircleDiameter{i}'))
+            bolt_hole_diameter = sanitize_input(request.form.get(f'boltHoleDiameter{i}'))
+            num_bolts = sanitize_input(request.form.get(f'numberOfBolts{i}'))
+            clocking_offset = sanitize_input(request.form.get(f'clockingOffset{i}'))
+            if not all([bolt_circle_diameter, bolt_hole_diameter, num_bolts, clocking_offset]):
+                flash('Incomplete flanged joint data')
+                return jsonify({'error': 'Incomplete flanged joint data'})
+            joint_data.append({
+                'location': [float(loc) for loc in location],
+                'normal_vector': [float(vec) for vec in normal_vector],
+                'joint_type': joint_type,
+                'bolt_circle_diameter': float(bolt_circle_diameter),
+                'bolt_hole_diameter': float(bolt_hole_diameter),
+                'num_bolts': int(num_bolts),  # Ensure num_bolts is an integer
+                'clocking_offset': float(clocking_offset)
+            })
+        else:
+            if not all([joint_type, *location, *normal_vector]):
+                flash('Incomplete joint data')
+                return jsonify({'error': 'Incomplete joint data'})
+            joint_data.append({
+                'location': [float(loc) for loc in location],
+                'normal_vector': [float(vec) for vec in normal_vector],
+                'joint_type': joint_type
+            })
+
     session['joint_data'] = joint_data  # Store serializable data in the session
     joint_data = session.get('joint_data', [])
-    joints = [flaredJoint(data['location'], data['normal_vector'], data['flare_size']) for data in joint_data]  # Reconstruct the flaredJoint objects from the session data
-    tolerance = float(request.form.get("toleranceValue"))  # Get the tolerance value from the form
-    plateThk = float(request.form.get("thicknessValue"))  # Get the thickness value from the form
+
+    # Reconstruct the joint objects from the session data
+    joints = []
+    for data in joint_data:
+        if data['joint_type'] == 'Flanged':
+            joints.append(flangeJoint(
+                data['location'], data['normal_vector'], data['bolt_circle_diameter'],
+                data['num_bolts'], data['bolt_hole_diameter'], data['clocking_offset']
+            ))
+        else:
+            joints.append(flaredJoint(data['location'], data['normal_vector'], data['joint_type']))
+
+    tolerance = float(sanitize_input(request.form.get("toleranceValue")))  # Get the tolerance value from the form
+    plateThk = float(sanitize_input(request.form.get("thicknessValue")))  # Get the thickness value from the form
     generated_files = generateSupports(joints, user_folder, tolerance, plateThk)  # Call the function to generate the tooling files
     generated_files = [os.path.basename(f) for f in generated_files]  # Get only the filenames
     return jsonify({'generated_files': generated_files})
+
+
 
 @app.route('/generated/<filename>')
 def serve_generated_file(filename):

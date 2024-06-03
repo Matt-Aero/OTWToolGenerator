@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         jointContainer.className = 'border rounded mb-3 p-2';
         jointContainer.style.borderColor = '#A9A9A9';
         jointContainer.style.position = 'relative';
-
+    
         jointContainer.innerHTML = `
             <small class="font-weight-bold" style="position: absolute; top: -10px; left: 10px; background: black; padding: 0 5px;">JOINT ${jointCount}</small>
             <div class="form-group mb-2">
@@ -234,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <option value="1/4">Flared 1/4</option>
                     <option value="1/2">Flared 1/2</option>
                     <option value="1">Flared 1</option>
+                    <option value="Flanged">Flanged</option>
                 </select>
             </div>
             <div class="form-group d-flex align-items-center mb-2">
@@ -250,10 +251,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="text" class="form-control form-control-sm" name="nzInput${jointCount}" placeholder="Z">
                 <span class="small ms-2" style="width: 15em;">[-]</span>
             </div>
+            <div id="additionalInputs${jointCount}"></div>
         `;
-
-
+    
         document.getElementById('jointsContainer').appendChild(jointContainer);
+    
+        // Add event listener for the newly added joint
+        document.getElementById(`jointType${jointCount}`).addEventListener('change', function() {
+            updateJointType(this, `additionalInputs${jointCount}`);
+        });
+        document.getElementById('jointCount').value = jointCount; // UPDATE THE HIDDEN "JOINT COUNT" FIELD IN HTML SO THAT FLASK CAN PULL IT TOO
     }
 
     function removeJoint() {
@@ -262,6 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
             jointsContainer.removeChild(jointsContainer.lastChild);
             jointCount--;
         }
+        document.getElementById('jointCount').value = jointCount; // UPDATE THE HIDDEN "JOINT COUNT" FIELD IN HTML SO THAT FLASK CAN PULL IT TOO
     }
 
     document.querySelector('button#addJointButton').addEventListener('click', addJoint);
@@ -354,4 +362,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // listening for if the user selects a flanged joint
+    document.getElementById('jointType1').addEventListener('change', function() {
+        updateJointType(this, 'additionalInputs1');
+    });
+    function updateJointType(selectElement, additionalInputsId) {
+        const additionalInputs = document.getElementById(additionalInputsId);
+        additionalInputs.innerHTML = '';
+
+        if (selectElement.value === 'Flanged') {
+            const inputHtml = `
+                <div class="form-group d-flex align-items-center mb-2 mt-2">
+                    <label for="boltCircleDiameter${jointCount}" class="me-2" style="width: 40em;">Bolt Circle Diameter</label>
+                    <input type="text" class="form-control form-control-sm" name="boltCircleDiameter${jointCount}" placeholder="-">
+                    <span class="small ms-2" style="width: 15em;">[mm]</span>
+                </div>
+                <div class="form-group d-flex align-items-center mb-2">
+                    <label for="boltHoleDiameter${jointCount}" class="me-2" style="width: 40em;">Bolt Hole Diameter</label>
+                    <input type="text" class="form-control form-control-sm" name="boltHoleDiameter${jointCount}" placeholder="-">
+                    <span class="small ms-2" style="width: 15em;">[mm]</span>
+                </div>
+                <div class="form-group d-flex align-items-center mb-2">
+                    <label for="numberOfBolts${jointCount}" class="me-2" style="width: 40em;"># Bolts</label>
+                    <input type="text" class="form-control form-control-sm" name="numberOfBolts${jointCount}" placeholder="-">
+                    <span class="small ms-2" style="width: 15em;">[-]</span>
+                </div>
+                <div class="form-group d-flex align-items-center">
+                    <label for="clockingOffset${jointCount}" class="me-2" style="width: 40em;">Clocking Offset (deg)</label>
+                    <input type="text" class="form-control form-control-sm" name="clockingOffset${jointCount}" placeholder="-">
+                    <span class="small ms-2" style="width: 15em;">[deg]</span>
+                </div>
+            `;
+            additionalInputs.innerHTML = inputHtml;
+        }
+    }
+
 });
+
