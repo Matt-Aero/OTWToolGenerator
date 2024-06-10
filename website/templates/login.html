@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='signup.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="height: 100vh;">
+    <form class="z-10 mx-auto rounded-2xl border bg-white p-4 shadow-md md:w-96 md:px-5" style="width: 100%; max-width: 400px;" method="post">
+        <h1 class="pt-1 text-center text-3xl font-bold">Log In</h1>
+        <div class="mb-8 grid grid-cols-1 gap-3">
+            <label>Email Address
+                <input autocomplete="email" class="form-control" name="email" placeholder="Email Address" type="email" required="">
+            </label>
+            <label class="mt-2">Password
+                <input autocomplete="current-password" class="form-control" maxlength="100" minlength="4" name="password" placeholder="Password" type="password" required="">
+            </label>
+        </div>
+        <div>
+            <button class="btn btn-lg btn-signup w-100 mt-4" type="submit">Log In</button>
+            <p class="mb-1 mt-4 text-center text-sm text-gray-800">Don't have an account?
+                <a class="underline hover:text-black" href="{{ url_for('auth.sign_up') }}">Sign Up</a>
+            </p>
+        </div>
+    </form>
+</div>
+{% endblock %}

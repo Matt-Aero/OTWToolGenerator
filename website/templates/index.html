@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}OTW Tool Generator{% endblock %}
+{% block description %}Generate tooling 10x faster with OTW tool generator.{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}" id="theme-color">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center vh-100 text-white">
+    <div class="text-center" style="max-width: 50em; margin: 0 auto; padding: 2em;">
+        <h1 class="heading-black text-capitalize">Design tooling for welded tubes fast</h1>
+        <p class="lead py-3">The app to design precision fixturing for orbital tube welded (OTW) assemblies 
+            in minutes. Try now in-browser for free.</p>
+        <a href="{{ url_for('views.design') }}" class="btn-custom btn-outline-light d-inline-flex flex-row align-items-center">
+            Design Now
+        </a>
+    </div>
+</div>
+
+
+<footer class="text-center mt-4 py-3" style="position: fixed; bottom: 0; width: 100%; background-color: transparent; color: white; font-size: 0.8em;">
+    <div class="container d-flex justify-content-between">
+        <p class="mb-0">&copy; OTG 2024</p>
+        <p class="mb-0">
+            <a href="{{ url_for('views.terms_of_service') }}" style="color: white; text-decoration: none;">Terms & Conditions</a> |
+            <a href="{{ url_for('views.privacy') }}" style="color: white; text-decoration: none;">Privacy Policy</a>
+        </p>
+        <p class="mb-0">Contact: <a href="mailto:OTWToolGenerator@Gmail.com" style="color: white; text-decoration: none;">OTWToolGenerator@Gmail.com</a></p>
+    </div>
+</footer>
+
+
+{% endblock %}
+
+{% block scripts %}
+
+{% endblock %}

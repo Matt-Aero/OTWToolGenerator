@@ -1,0 +1,72 @@
+/* Import font */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@700&display=swap');
+
+
+.navbar, .navbar-dark, .nav, .navbar-brand {
+    background-color: #000000 !important;
+    font-family: 'IBM Plex Mono', monospace;
+}
+
+.navbar {
+    border-bottom: 2px solid #A9A9A9;
+}
+
+.navbar .dropdown-menu .form-control {
+    width: 200px;
+}
+
+.nav-item {
+    padding-left: 1.5rem; /* Adjust the value as needed for desired spacing */
+}
+
+body {
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+
+/* Custom button styling */
+.btn-custom {
+    color: white;
+    border: 2px solid white;
+    border-radius: 1em;
+    background-color: transparent;
+    padding: 0.5em 1em;
+    transition: background-color 0.4s ease, color 0.4s ease;
+    transition: border-color 0.4s ease, color 0.4s ease;
+    text-decoration: none;
+}
+
+#signupButton {
+    border: 2px solid white;
+    border-radius: 1em;
+    color: white;
+    background-color: transparent;
+}
+
+.btn-custom:hover, #signupButton:hover  {
+    background-color: #00c062;
+    border: 2px solid;
+    border-color: #00c062;
+}
+
+.navbar-logo {
+    height: 70px;
+    transition: filter 0.2s ease; /* Smooth transition effect */
+}
+
+.user-info {
+    text-align: left;
+}
+
+.premium-status {
+    font-size: 0.8rem; /* Smaller font size for Premium tag */
+    color: gold;      /* Gold color for Premium tag */
+}
+
+.user-info a {
+    color: #00c062;
+    text-decoration: none;
+}
+
+.user-info a:hover {
+    color: #00a854; /* Slightly darker green */
+}

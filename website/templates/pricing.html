@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Pricing - OTW Tool Generator{% endblock %}
+{% block description %}Find the right plan for you and start generating tooling 10x faster with OTW Tool Generator.{% endblock %}
+
+{% block head %}
+<script src="https://js.stripe.com/v3/"></script>
+<script type="module" src="{{ url_for('static', filename='checkout.js') }}" defer></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='pricing.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="background-black d-flex justify-content-center align-items-center vh-100">
+    <div class="card text-center">
+        <h1 class="card-title">Premium</h1>
+        <h2 class="price">${{ price }} / mo</h2>
+        <p class="description"><strong>Design Tooling in Minutes, Not Hours</strong></p>
+        <ul class="list-unstyled">
+            <li>• Generate unlimited tooling pieces and joints</li>
+            <li>• Create custom flanged end points</li>
+            <li>• Access to feature updates (interference checks, custom weld head inputs)</li>
+        </ul>
+        <div class="card-body">
+            {% if not session.get('user_email') %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn-success">Sign In to Upgrade</a>
+            {% elif session.get('userSubStatus') == True %}
+                <button class="btn btn-success border-0" disabled>Membership Purchased</button>
+            {% elif not session.get('email_verified') %}
+                <button class="btn btn-warning border-0" disabled>Please Verify Email</button>
+            {% else %}
+                <button class="btn btn-success" id="checkout-button">Buy Now</button>
+            {% endif %}
+        </div>
+        <p class="support">Contact support at OTWToolGenerator@gmail.com</p>
+    </div>
+</div>
+
+<footer class="text-center mt-4 py-3" style="position: fixed; bottom: 0; width: 100%; background-color: transparent; color: white; font-size: 0.8em;">
+    <div class="container d-flex justify-content-between">
+        <p class="mb-0">&copy; OTG 2024</p>
+        <p class="mb-0">
+            <a href="{{ url_for('views.terms_of_service') }}" style="color: white; text-decoration: none;">Terms & Conditions</a> |
+            <a href="{{ url_for('views.privacy') }}" style="color: white; text-decoration: none;">Privacy Policy</a>
+        </p>
+        <p class="mb-0">Contact: <a href="mailto:OTWToolGenerator@Gmail.com" style="color: white; text-decoration: none;">OTWToolGenerator@Gmail.com</a></p>
+    </div>
+</footer>
+
+
+{% endblock %}

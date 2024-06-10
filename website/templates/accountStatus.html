@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Subscription Status{% endblock %}
+{% block description %}Check Subscription / Premium Status{% endblock %}
+
+{% block head %}
+<script src="https://js.stripe.com/v3/"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='pricing.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="background-black d-flex justify-content-center align-items-center vh-100">
+    <div class="card text-center" style="width: 24rem; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        <h1 class="card-title">Profile</h1>
+        <p><strong>Account Email:</strong> {{ session.user_email }}</p>
+        <p><strong>Status:</strong> <span style="color: {{ 'gold' if session.userSubStatus else 'black' }};">{{ 'Premium' if session.userSubStatus else 'Free' }}</span></p>
+        {% if session.userSubStatus %}
+            <p>
+                <strong>Cycle End Date:</strong> {{ session.next_bill_date }}
+                {% if session.cancel_at_period_end %}
+                    <span style="color: red; font-size: small;">(Cancelled)</span>
+                    <br>
+                    <span style="font-size: small;">Your subscription will remain active until this date and will NOT auto-renew.</span>
+                {% else %}
+                    <br>
+                    <span style="font-size: small;">Your subscription will renew on this date.</span>
+                {% endif %}
+            </p>
+            <form method="POST" action="{{ url_for('payment.create_customer_portal_session') }}" id="billing-form">
+                <button type="submit" class="btn btn-primary btn-sm">Manage/Cancel Billing</button>
+            </form>
+        {% endif %}
+        <p style="margin-top: 1rem;"><strong>Contact Support:</strong> OTWToolgenerator@gmail.com</p>
+    </div>
+</div>
+
+
+
+
+<footer class="text-center mt-4 py-3" style="position: fixed; bottom: 0; width: 100%; background-color: transparent; color: white; font-size: 0.8em;">
+    <div class="container d-flex justify-content-between">
+        <p class="mb-0">&copy; OTG 2024</p>
+        <p class="mb-0">
+            <a href="{{ url_for('views.terms_of_service') }}" style="color: white; text-decoration: none;">Terms & Conditions</a> |
+            <a href="{{ url_for('views.privacy') }}" style="color: white; text-decoration: none;">Privacy Policy</a>
+        </p>
+        <p class="mb-0">Contact: <a href="mailto:OTWToolGenerator@Gmail.com" style="color: white; text-decoration: none;">OTWToolGenerator@Gmail.com</a></p>
+    </div>
+</footer>
+
+
+
+<script>
+    document.getElementById('billing-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const response = await fetch('/create_customer_portal_session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+        if (data.url) {
+            window.open(data.url, '_blank');
+        } else {
+            alert('Failed to create billing portal session: ' + data.message);
+        }
+    });
+</script>
+{% endblock %}
