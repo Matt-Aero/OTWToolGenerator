@@ -46,7 +46,7 @@ def callback():
     print("User Subscription Status (on login): " + str(user_sub_status))
 
     if session['email_verified'] == False:
-        return redirect(url_for('verify_email'))
+        return redirect(url_for('auth.verifyEmail'))
 
     return redirect("/")
 

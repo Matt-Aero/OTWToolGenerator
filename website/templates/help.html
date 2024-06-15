@@ -57,7 +57,15 @@
         <p>
             Thank you for using OTW Tool Generator during its development. If you have feedback, feature requests, or need help please reach out to <a href="mailto:otwtoolgenerator@gmail.com">otwtoolgenerator@gmail.com</a>.
         </p>
+
+
     </div>
+
+    <div class="content-section" id="step1">
+        <h4>User Interface Diagram</h4>
+        <img src="{{ url_for('static', filename='assets/diagram.png') }}" alt="Part above workbench" style="width: 100%; height: auto;">
+    </div>
+
 
     <div class="content-section" id="workflow-example">
         <h2>Example</h2>
@@ -66,15 +74,17 @@
 
     <div class="content-section" id="step1">
         <h4>1. Position Assembly</h4>
-        <p>From your CAD software, position the OTW assembly above the XY plane. The XY plane represents the workbench or tabletop for the tooling. The Z axis should point upwards, opposite the gravity vector. Note that you may need to add suitable end fittings or constraints to interface with the tubing. Shown below are through-wall fittings (PN: 50715K581 from McMaster-Carr) which have extended threaded shafts for fitting through panels.</p>
+        <p>From your CAD software, position the OTW assembly above the XY plane. The XY plane represents the workbench or tabletop for the tooling. The Z axis should point upwards, opposite the gravity vector.</p>
         <img src="{{ url_for('static', filename='assets/assembly_above_workbench.png') }}" alt="Part above workbench" style="width: 100%; height: auto;">
     </div>
 
     <div class="content-section" id="step2">
-        <h4>2. Record Joint Data</h4>
-        <p>Record the location (X,Y,Z) and pointing vector (X,Y,Z) of each of the desired joint locations. The location should be measured in millimeters at the center of the face where you want the tool placed. In this example, the location is measured on the end fittings, near the hex face.</p>
-        <p>The joint data for this sample assembly is shown in the table below:</p>
+        <h4>2. Selecting Joints</h4>
+        <p><span style="color: #00c062;">Joints</span> are end points of the tubing assembly that need to be constrained. Each joint consists of a location, pointing vector, and joint type.</p>
+        <p>The joint location and vector can be easily selected by pressing "Select Location" and then selecting the edge on the assembly that you wish to place a joint at. Alternatively, joint data can be entered in millimeters into the input boxes.</p>
+        <p>After selecting a joint location, a green vector arrow will appear. The vector arrow points in the direction that the tooling will be extruded. The arrow should face away from the face you have selected for your joint to prevent interferences between the tool and your tubing assembly. The joint vector can be easily rotated 180 degrees by pressing the double arrow button next to the vector input row.</p>
         <img src="{{ url_for('static', filename='assets/joint_selection.png') }}" alt="Joint selection" style="width: 100%; height: auto;">
+        <p>The joint data for this sample assembly is shown in the table below:</p>
         <div class="table-container">
             <table>
                 <thead>
@@ -104,12 +114,13 @@
             </table>
         </div>
     </div>
-
+    
     <div class="content-section" id="step3">
         <h4>3. Input Data</h4>
-        <p>In the OTW Tool Generator web application, input the joint location and vector data from above. Additionally, the exported .stl file of the assembly can be loaded for visualization, however, this is optional.</p>
+        <p>Fill out the form data for each joint. Flared joints can be selected of flanged connection with adjustable bolt patterns. Note that each joint on the left panel cooresponds to a joint on the tubing assembly. Loading of the tubing assembly is not required to use the tool but is highly recommended. Loading the tubing assembly allows for inputting joint location and vector data simply by selecting edge on the assembly., input the joint location and vector data from above. Additionally, the exported .stl file of the assembly can be loaded for visualization; however, this is optional.</p>
         <img src="{{ url_for('static', filename='assets/joint_data_webpage.png') }}" alt="Joint data in the webpage" style="width: 100%; height: auto;">
     </div>
+    
 
     <div class="content-section" id="step4">
         <h4>4. Configure Parameters</h4>
@@ -117,14 +128,16 @@
     </div>
 
     <div class="content-section" id="step5">
-        <h4>5. Generate Tooling</h4>
-        <p>Press “Generate Tooling” to see generated files displayed on screen. The export button can be used to export the files.</p>
+        <h4>5. Generate Tooling and Export</h4>
+        <p>Press “Generate Tooling” to produce the production-ready tooling part files. If you are happy with the result, press "Export" to download the tooling part files to your local computer.</p>
         <img src="{{ url_for('static', filename='assets/final_assembly.png') }}" alt="Final assembly" style="width: 100%; height: auto;">
     </div>
 
     <div class="content-section" id="whats-next">
         <h2>What’s Next?</h2>
         <p>After generating the part files, you can send them directly to a manufacturing house to be waterjet or laser-cut. Additionally, you can import the parts into your CAD software and assign them part numbers for tracking in your own part modeling environment. Due to the tab+slot geometry, welding out the final assembly is easy.</p>
+        <p>Reach out to <span style="color: #00c062;">OTWToolGenerator@gmail.com</span> with any questions! We are here to help.</p>
+    
     </div>
 </main>
 

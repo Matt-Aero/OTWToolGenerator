@@ -57,12 +57,7 @@ label {
     color: white;
 }
 
-#jointsContainer {
-    max-height: 50vh; /* 50% of the viewport height */
-    overflow-y: auto;
-    scrollbar-color: #6c757d #343a40; /* For Firefox */
-    scrollbar-width: thin; /* For Firefox */
-}
+
 
 /* RADIO BUTTONS FOR GRID */
 #radioButtonsContainer {
@@ -178,14 +173,12 @@ input[type=range]::-webkit-slider-thumb {
 #addJointButton {
     text-align: center;
     background-color: rgb(255, 255, 255);
-    color: black;
+    color: rgb(255, 255, 255);
     border-color: black;
     transition: background-color 0.3s, color 0.3s; /* Add transition for smooth effect */
 }
-#addJointButton:hover {
-    background-color: rgb(230, 230, 230); /* Slightly darker background */
-    color: rgb(30, 30, 30); /* Slightly darker text */
-}
+
+
 #removeJointButton {
     text-align: center;
     background: rgba(0, 0, 0, 0);
@@ -224,4 +217,9 @@ input[type=range]::-webkit-slider-thumb {
 #exportButton:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: rgba(255, 255, 255, 0.8);
+}
+
+/* Add this to your design.css file */
+#clearSceneButton {
+    font-size: 0.7em; /* Adjust the font size as needed */
 }

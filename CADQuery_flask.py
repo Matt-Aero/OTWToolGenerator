@@ -1,6 +1,6 @@
 import os
 import cadquery as cq
-from cadquery import exporters
+from cadquery import exporters, importers
 import numpy as np
 import math
 

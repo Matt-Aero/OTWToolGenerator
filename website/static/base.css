@@ -70,3 +70,7 @@ body {
 .user-info a:hover {
     color: #00a854; /* Slightly darker green */
 }
+
+.btn-success {
+    background-color: #00c062 !important;
+}

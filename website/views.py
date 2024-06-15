@@ -2,8 +2,9 @@ from flask import Flask, request, redirect, flash, render_template, send_from_di
 import os
 import tempfile
 import zipfile
-import shutil
-from CADQuery import Joint, flaredJoint, flangeJoint, generateSupports
+import cadquery as cq
+from cadquery import exporters, importers
+from CADQuery_flask import Joint, flaredJoint, flangeJoint, generateSupports
 from flask import current_app as app 
 from .payment import updateSubscriptionStatus
 
@@ -33,6 +34,27 @@ def upload_file():
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             return jsonify({"message": "File uploaded successfully"}), 200
     return
+
+
+def convert_step_to_stl(step_path, stl_path):
+    try:
+        part = importers.importStep(step_path)
+        exporters.export(part, stl_path)
+        
+        #base_path = os.path.dirname(__file__)
+        #output_path = os.path.join(base_path, 'output.stl')
+        #print(output_path)
+        #exporters.export(part, output_path)
+    except Exception as e:
+        app.logger.error(f"Error converting STEP to STL: {e}")
+        raise
+
+
+
+
+
+
+
 
 @views.route('/account_status')
 def account_status():
