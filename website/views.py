@@ -129,7 +129,7 @@ def process_joints():
             num_bolts = sanitize_input(request.form.get(f'numberOfBolts{i}'))
             clocking_offset = sanitize_input(request.form.get(f'clockingOffset{i}'))
             if not all([bolt_circle_diameter, bolt_hole_diameter, num_bolts, clocking_offset]):
-                flash('Incomplete flanged joint data')
+                #flash('Incomplete flanged joint data')
                 return jsonify({'error': 'Incomplete flanged joint data'})
             joint_data.append({
                 'location': [float(loc) for loc in location],
@@ -142,7 +142,7 @@ def process_joints():
             })
         else:
             if not all([joint_type, *location, *normal_vector]):
-                flash('Incomplete joint data')
+                #flash('Incomplete joint data')
                 return jsonify({'error': 'Incomplete joint data'})
             joint_data.append({
                 'location': [float(loc) for loc in location],

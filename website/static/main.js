@@ -26,7 +26,6 @@ let raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let edge_hover = null;  // holds the current edge being hovered over
 let centerPoint_hover = null; // holds the center point of the current edge being hovered over
-let jointCount = 1;
 let visualInputJointId = null; // Global parameter to track the currently selected joint for visual input
 let jointArray = [];
 /*
@@ -617,6 +616,7 @@ function areVerticesCoincident(edge1, edge2, tolerance = 0.0001) { // checks if 
 
 ///// FILE UPLOADS/PROCESSING ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function handleFileUpload(event) {
+    document.getElementById('loadingMessage').style.display = 'block';
     uploadedFile = event.target.files[0];
     const formData = new FormData();
     formData.append('file', uploadedFile);
@@ -629,11 +629,13 @@ function handleFileUpload(event) {
         .then(data => {
             if (data.error) {
                 alert(data.error);
+                document.getElementById('loadingMessage').style.display = 'none';
             } else {
                 loadFileUpload(uploadedFile);
             }
         })
         .catch(error => {
+            document.getElementById('loadingMessage').style.display = 'none';
             console.error('Error:', error);
             alert('An error occurred while uploading the file. Check File size / type- only .stl files under 50mb are allowed.');
         });
@@ -689,9 +691,15 @@ function loadFileUpload(file) {
         const url = URL.createObjectURL(file);
         loadSTL(url, materialTube, true, { type: 'fileUpload' }, () => {
             console.log("File loaded.");
+            // Hide the loading message only after the file has been loaded
+            document.getElementById('loadingMessage').style.display = 'none';
         });
+    } else {
+        // Hide the loading message if no file is selected
+        document.getElementById('loadingMessage').style.display = 'none';
     }
 }
+
 
 function loadTooling(formData) {
     document.getElementById('loadingMessage').style.display = 'block';
@@ -906,23 +914,23 @@ function updateJointType(selectElement, additionalInputsId) {
     if (selectElement.value === 'Flanged') {
         additionalInputs.innerHTML = `
             <div class="form-group d-flex align-items-center mb-2 mt-2">
-                <label for="boltCircleDiameter${jointCount}" class="me-2" style="width: 40em;">Bolt Circle Diameter</label>
-                <input type="text" class="form-control form-control-sm" name="boltCircleDiameter${jointCount}" placeholder="-">
+                <label for="boltCircleDiameter${jointArray.length}" class="me-2" style="width: 40em;">Bolt Circle Diameter</label>
+                <input type="text" class="form-control form-control-sm" name="boltCircleDiameter${jointArray.length}" placeholder="-">
                 <span class="small ms-2" style="width: 15em;">[mm]</span>
             </div>
             <div class="form-group d-flex align-items-center mb-2">
-                <label for="boltHoleDiameter${jointCount}" class="me-2" style="width: 40em;">Bolt Hole Diameter</label>
-                <input type="text" class="form-control form-control-sm" name="boltHoleDiameter${jointCount}" placeholder="-">
+                <label for="boltHoleDiameter${jointArray.length}" class="me-2" style="width: 40em;">Bolt Hole Diameter</label>
+                <input type="text" class="form-control form-control-sm" name="boltHoleDiameter${jointArray.length}" placeholder="-">
                 <span class="small ms-2" style="width: 15em;">[mm]</span>
             </div>
             <div class="form-group d-flex align-items-center mb-2">
-                <label for="numberOfBolts${jointCount}" class="me-2" style="width: 40em;"># Bolts</label>
-                <input type="text" class="form-control form-control-sm" name="numberOfBolts${jointCount}" placeholder="-">
+                <label for="numberOfBolts${jointArray.length}" class="me-2" style="width: 40em;"># Bolts</label>
+                <input type="text" class="form-control form-control-sm" name="numberOfBolts${jointArray.length}" placeholder="-">
                 <span class="small ms-2" style="width: 15em;">[-]</span>
             </div>
             <div class="form-group d-flex align-items-center">
-                <label for="clockingOffset${jointCount}" class="me-2" style="width: 40em;">Clocking Offset (deg)</label>
-                <input type="text" class="form-control form-control-sm" name="clockingOffset${jointCount}" placeholder="-">
+                <label for="clockingOffset${jointArray.length}" class="me-2" style="width: 40em;">Clocking Offset (deg)</label>
+                <input type="text" class="form-control form-control-sm" name="clockingOffset${jointArray.length}" placeholder="-">
                 <span class="small ms-2" style="width: 15em;">[deg]</span>
             </div>
         `;
