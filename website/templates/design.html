@@ -12,7 +12,7 @@
 {% block content %}
 <div class="container-fluid content-container">
     <div class="left-panel">
-        <div class="mb-4">
+        <div class="mb-1">
             <form>
                 <label for="fileUpload" class="small form-label font-weight">Upload tube Assembly (.stl, 50mb max):</label>
                 <input class="form-control form-control-sm" id="fileUpload" type="file" accept=".stl">
@@ -25,19 +25,19 @@
             
             <div class="d-flex justify-content-center">
                 <button type="button" class="btn btn-success btn-sm" id="addJointButton">Add Joint</button>
-                <button type="button" class="btn btn-sm ms-2" id="removeJointButton">Remove</button>
+                <button type="button" class="btn btn-sm" id="removeJointButton">Remove</button>
             </div>
             <!-- Parameters section -->
-            <div class="border rounded mb-3 p-2 mt-4" style="border-color: #A9A9A9; position: relative;">
+            <div class="border rounded p-1 mt-3" style="border-color: #A9A9A9; position: relative;">
                 <small class="font-weight-bold" style="position: absolute; top: -10px; left: 10px; background: black; padding: 0 5px;">Parameters</small>
                 <div class="d-flex flex-column">
-                    <div class="d-flex justify-content-center align-items-center mt-3">
-                        <label for="toleranceSlider" class="me-2">Tab+Slot Tolerance</label>
+                    <div class="d-flex justify-content-center align-items-center mt-1">
+                        <label for="toleranceSlider" class="me-2">Tab+Slot Clearance</label>
                         <input type="range" class="form-range" id="toleranceSlider" min="0.0" max="1" step="0.05" value="0.25">
                         <input type="text" class="form-control form-control-sm ms-2 small" id="toleranceValue" name="toleranceValue" value="0.25" style="width: 60px;">
                         <span class="small ms-2">[mm]</span>
                     </div>
-                    <div class="d-flex justify-content-center align-items-center mt-3">
+                    <div class="d-flex justify-content-center align-items-center mt-1">
                         <label for="thicknessSlider" class="me-2">Material Thickness</label>
                         <input type="range" class="form-range" id="thicknessSlider" min="1" max="25.4" step=".1" value="12.70">
                         <input type="text" class="form-control form-control-sm ms-2 small" id="thicknessValue" name="thicknessValue" value="12.70" style="width: 60px;">
@@ -53,11 +53,64 @@
         <div class="d-flex justify-content-center mt-1 align-bottom">
             <button type="button" class="btn btn-info btn-sm" id="exportButton">Export as ZIP</button>
         </div>
-        
-
 
         <div id="errorContainer" class="d-flex text-danger justify-content-center mt-3">
         </div>
+
+
+        <!-- Interference Checker section -->
+        <div class="border rounded p-1 mt-4" style="border-color: #A9A9A9; position: relative;">
+            <div class="form-check form-switch mt-1 d-flex align-items-center">
+                <input class="form-check-input" type="checkbox" id="interferenceCheckSwitch">
+                <label class="form-check-label ms-2" for="interferenceCheckSwitch">View Weld Head</label>
+            </div>
+            <div id="interferenceOptions" class="mt-1" style="display: none;">
+                <div class="row mb-2 d-flex align-items-center">
+                    <div class="col"> 
+                        <label for="weldHeadModel" class="form-label me-2" style="min-width: 150px;">Weld Head Model:</label>
+                    </div>
+                    <div class="col-6"> 
+                        <select class="form-control form-control-sm" id="weldHeadModel" name="weldHeadModel" style="flex-grow: 1;">
+                            <option value="" disabled selected>-Select Weld Head-</option>
+                            <option value="AXXAIR SAMX-17" data-img="{{ url_for('static', filename='weldheads/SAMX-17.png') }}">AXXAIR SAMX-17</option>
+                            <option value="AXXAIR SAMX-25" data-img="{{ url_for('static', filename='weldheads/SAMX-25.png') }}">AXXAIR SAMX-25</option>
+                            <option value="AXXAIR SATFX-52" data-img="{{ url_for('static', filename='weldheads/SATFX-52.png') }}">AXXAIR SATFX-52</option>
+                            <option value="AXXAIR SATFX-76" data-img="{{ url_for('static', filename='weldheads/SATFX-76.png') }}">AXXAIR SATFX-76</option>
+                            <option value="AXXAIR SATFX-115" data-img="{{ url_for('static', filename='weldheads/SATFX-115.png') }}">AXXAIR SATFX-115</option>
+                        </select>
+                    </div>
+                    
+                </div>
+
+                <div class="row text-center mx-auto">
+                    <img id="weldHeadImage" src="" class="mx-auto" alt="Selected Weld Head" style="max-width: 70%; max-height: 100%; display: none;">
+                </div>
+                
+                <div class="row mb-2 d-flex align-items-center">
+                    <div class="col"> 
+                        <label for="jointNumber" class="form-label me-2" style="min-width: 150px;">Joint Number:</label>
+                    </div>
+                    <div class="col-6"> 
+                        <select class="form-control form-control-sm" id="jointNumber" name="jointNumber" style="flex-grow: 1;">
+                            <option value="" disabled selected>-Select Joint-</option>
+                            <!-- Joint options will be populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col"> 
+                        <label for="angleSlider" class="form-label">Rotation</label>
+                    </div>
+                    <div class="col-6"> 
+                        <input type="range" class="form-range" id="angleSlider" min="0" max="400" step="1" value="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        
+
         
     </div>
     <div class="right-container">

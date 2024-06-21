@@ -49,13 +49,13 @@
     <div class="content-section">
         <h1 class="mb-4 text-center">About</h1>
         <p>
-            <strong>OTW Tool Generator</strong> (OTG) streamlines the tooling design process for for welded tube assemblies.
+            <strong>OTW Tool Generator</strong> (OTG) streamlines the tooling design process for welded tube assemblies. OTG runs entirely in the browser with no downloads.
         </p>
         <p>
-            Rapidly produce production-ready STEP files with tab+slot features, adjustable tolerancing, and material thickness. Simply input the location and vector of each end point and press go.
+            Rapidly produce production-ready STEP files with tab+slot features, adjustable tolerancing, and material thickness. Simply select the location of each end point and press go.
         </p>
         <p>
-            Thank you for using OTW Tool Generator during its development. If you have feedback, feature requests, or need help please reach out to <a href="mailto:otwtoolgenerator@gmail.com">otwtoolgenerator@gmail.com</a>.
+            If you have feedback, feature requests, or need help please reach out to <a href="mailto:otwtoolgenerator@gmail.com">otwtoolgenerator@gmail.com</a>.
         </p>
 
 
@@ -66,58 +66,29 @@
         <img src="{{ url_for('static', filename='assets/diagram.png') }}" alt="Part above workbench" style="width: 100%; height: auto;">
     </div>
 
-
+    
     <div class="content-section" id="workflow-example">
         <h2>Example</h2>
-        <p>This tutorial walks through how to use OTG with a simple ¼” flared tubing assembly, containing a welded tee.</p>
+        <p>This tutorial walks through how to use OTG with a simple 1/2” flared tubing assembly, containing a welded tee.</p>
     </div>
 
     <div class="content-section" id="step1">
-        <h4>1. Position Assembly</h4>
-        <p>From your CAD software, position the OTW assembly above the XY plane. The XY plane represents the workbench or tabletop for the tooling. The Z axis should point upwards, opposite the gravity vector.</p>
+        <h4>1. Load Assembly</h4>
+        <p>First, the tubing assembly is uploaded by selecting the "Choose File" button at the top left of the screen. OTG accepts .STL files only. Note that the XY plane represents the workbench or tabletop for the tooling. The Z axis should point upwards, opposite the gravity vector. The assembly should be positioned in your CAD software prior to uploading to OTG.</p>
         <img src="{{ url_for('static', filename='assets/assembly_above_workbench.png') }}" alt="Part above workbench" style="width: 100%; height: auto;">
     </div>
 
     <div class="content-section" id="step2">
         <h4>2. Selecting Joints</h4>
         <p><span style="color: #00c062;">Joints</span> are end points of the tubing assembly that need to be constrained. Each joint consists of a location, pointing vector, and joint type.</p>
-        <p>The joint location and vector can be easily selected by pressing "Select Location" and then selecting the edge on the assembly that you wish to place a joint at. Alternatively, joint data can be entered in millimeters into the input boxes.</p>
+        <p>The joint location and vector can be easily selected by pressing "Select Location" and then selecting the edge on the assembly that you wish to place a joint at. OTG will automatically extract the location and pointing vector and fill in the form fields. Alternatively, joint data can be entered in millimeters into the input boxes.</p>
         <p>After selecting a joint location, a green vector arrow will appear. The vector arrow points in the direction that the tooling will be extruded. The arrow should face away from the face you have selected for your joint to prevent interferences between the tool and your tubing assembly. The joint vector can be easily rotated 180 degrees by pressing the double arrow button next to the vector input row.</p>
         <img src="{{ url_for('static', filename='assets/joint_selection.png') }}" alt="Joint selection" style="width: 100%; height: auto;">
-        <p>The joint data for this sample assembly is shown in the table below:</p>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Joint #</th>
-                        <th>Location (X,Y,Z) [mm]</th>
-                        <th>Vector (X,Y,Z)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>97.625, -72.098, 160.000</td>
-                        <td>0, -1, 0</td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>-97.625, -72.098, 160.000</td>
-                        <td>0, -1, 0</td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>-35.569, 150.354, 126.050</td>
-                        <td>-7.519, 11.146, -7.176</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
     </div>
     
     <div class="content-section" id="step3">
         <h4>3. Input Data</h4>
-        <p>Fill out the form data for each joint. Flared joints can be selected of flanged connection with adjustable bolt patterns. Note that each joint on the left panel cooresponds to a joint on the tubing assembly. Loading of the tubing assembly is not required to use the tool but is highly recommended. Loading the tubing assembly allows for inputting joint location and vector data simply by selecting edge on the assembly., input the joint location and vector data from above. Additionally, the exported .stl file of the assembly can be loaded for visualization; however, this is optional.</p>
+        <p>Fill out the form data for each joint. OTG supports flared joints, flanged joints, midspan supports, or regular through-holes. Note that each joint on the left panel cooresponds to a joint on the tubing assembly. The location and vector data is automatically filled in when you select an edge for each joint!</p>
         <img src="{{ url_for('static', filename='assets/joint_data_webpage.png') }}" alt="Joint data in the webpage" style="width: 100%; height: auto;">
     </div>
     
@@ -125,20 +96,67 @@
     <div class="content-section" id="step4">
         <h4>4. Configure Parameters</h4>
         <p>Configure the “tab+slot clearance” and “material thickness” parameters. Tab+slot clearance defines the gap in millimeters all around the material tabs. This can help to ensure waterjet and/or 3D printed assemblies fit together. The default value is 0.25mm.</p>
+        <img src="{{ url_for('static', filename='assets/tolerance.png') }}" alt="Joint selection" style="width: 100%; height: auto;">
+    
     </div>
 
     <div class="content-section" id="step5">
         <h4>5. Generate Tooling and Export</h4>
-        <p>Press “Generate Tooling” to produce the production-ready tooling part files. If you are happy with the result, press "Export" to download the tooling part files to your local computer.</p>
+        <p>Press “Generate Tooling” to produce the production-ready tooling part files. If you are happy with the result, press "Export" to download the tooling part files, or, continue editing and export later. The part files can be sent directly to a manufacturing house to be waterjet or laser-cut. Due to the tab+slot geometry, welding out the final assembly is easy.</p>
         <img src="{{ url_for('static', filename='assets/final_assembly.png') }}" alt="Final assembly" style="width: 100%; height: auto;">
     </div>
 
     <div class="content-section" id="whats-next">
-        <h2>What’s Next?</h2>
-        <p>After generating the part files, you can send them directly to a manufacturing house to be waterjet or laser-cut. Additionally, you can import the parts into your CAD software and assign them part numbers for tracking in your own part modeling environment. Due to the tab+slot geometry, welding out the final assembly is easy.</p>
-        <p>Reach out to <span style="color: #00c062;">OTWToolGenerator@gmail.com</span> with any questions! We are here to help.</p>
-    
+         <p>This demo showed some of the features of the OTG software- but it can do so much more! Reach out to <span style="color: #00c062;">OTWToolGenerator@gmail.com</span> with any questions or to discuss how we can accelerate your business. We are here to help.</p>
     </div>
+
+
+    <div class="content-section" id="step1" >
+        <h4>Joint Types</h4>
+        <div id="carouselExampleCaptions" class="carousel slide">
+            <div class="carousel-indicators">
+            <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+            <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="1" aria-label="Slide 2"></button>
+            <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="2" aria-label="Slide 3"></button>
+            </div>
+            <div class="carousel-inner">
+            <div class="carousel-item active">
+                <img src="{{ url_for('static', filename='assets/jointTypes/flanged.png') }}" class="d-block w-100" alt="Joint 1">
+                                
+                <div class="carousel-caption d-none d-md-block">
+                <h5>Flanged</h5>
+                <p>Custom flanged joints can be input with varying bolt diameter, #bolts, and clocking. </p>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <img src="{{ url_for('static', filename='assets/jointTypes/flared.png') }}" class="d-block w-100" alt="Joint 2">
+                        
+                <div class="carousel-caption d-none d-md-block">
+                <h5>Flared / Hole</h5>
+                <p>Input custom hole diameters or use our pre-defined through-wall diameters for standard flared fittings.</p>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <img src="{{ url_for('static', filename='assets/jointTypes/midspan.png') }}" class="d-block w-100" alt="Joint 3">
+                <div class="carousel-caption d-none d-md-block">
+                <h5>Midspan Support</h5>
+                <p>Define additional constraints for midpoints in your assemnbly using midspan supports.</p>
+                </div>
+            </div>
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+    </div>
+
+
+
 </main>
 
 <footer class="text-center mt-4 py-3">

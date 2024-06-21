@@ -1,3 +1,10 @@
+:root {
+  --green: #00c062;
+  --dark: #000000;
+  --light: #A9A9A9;
+}
+
+
 body {
     font-family: 'IBM Plex Mono', monospace !important;
     background: url('../static/img/OTWToolGenerator_1.png') no-repeat center center fixed;
@@ -16,6 +23,98 @@ body::after {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Adjust the alpha value to control dimness */
+    background-color: rgba(0, 0, 0, 0.5);
     z-index: -1;
+}
+
+
+
+
+.btn-outline-light {
+  border-color: var(--green);
+}
+
+.arrow, fa-arrow-right {
+  position: absolute;
+  bottom: 20px;
+  width: 100%;
+  text-align: center;
+  color: #00c062;
+}
+
+.arrow a {
+  color: #00c062;
+  font-size: 2rem;
+}
+
+
+#features {
+  padding-bottom: 0px;;
+  background-color: var(--dark);
+  color: white;
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
+.feature-box {
+  border: 2px solid var(--light);
+  padding: 10px;
+  margin: 2px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  margin-bottom: 0;
+  margin-top: 0;
+}
+.bordered-img, .carousel {
+  border: 2px solid var(--light); /* Add a white border around each image */
+  border-radius: 5px; /* Optional: Add some rounding to the image borders */
+}
+
+
+.custom-container {
+  max-width: 55% !important; /* Set the desired width */
+  margin: 0 auto; /* Center the container */
+}
+
+.step-number {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  border-radius: 50%;
+  background-color: var(--green); /* Green background */
+  color: white;
+  text-align: center;
+  font-size: 18px;
+  margin-right: 10px;
+}
+
+
+
+
+
+footer {
+  background-color: #000000; /* Optional: To make the footer stand out against the rest of the page */
+  color: white;
+  border-top: 2px solid var(--light);
+}
+
+footer a {
+  color: white;
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+footer p {
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
+
+
+.highlight-green {
+  color: var(--green);
 }

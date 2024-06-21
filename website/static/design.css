@@ -1,3 +1,22 @@
+:root {
+    --green: #00c062;
+    --dark: #000000;
+    --light: #A9A9A9;
+  }
+
+
+/* Default styling for the switch */
+.form-check-input:checked {
+    background-color: var(--green); /* Green background when checked */
+    border-color: var(--green); /* Green border when checked */
+}
+
+/* Optional: transition effect for smooth color change */
+.form-check-input {
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+
 body { 
     margin: 0px;
     font-family: 'IBM Plex Mono';
@@ -222,4 +241,56 @@ input[type=range]::-webkit-slider-thumb {
 /* Add this to your design.css file */
 #clearSceneButton {
     font-size: 0.7em; /* Adjust the font size as needed */
+}
+
+
+
+
+.custom-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-select {
+    display: none;
+}
+
+.dropdown-selected {
+    padding: 5px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-selected img {
+    width: 20px;
+    height: auto;
+    margin-right: 10px;
+}
+
+.dropdown-options {
+    display: none;
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    z-index: 1;
+    width: 100%;
+}
+
+.dropdown-options div {
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-options div:hover {
+    background-color: #f1f1f1;
+}
+
+.dropdown-options img {
+    width: 20px;
+    height: auto;
+    margin-right: 10px;
 }

@@ -1,16 +1,22 @@
-import * as THREE from './node_modules/three/build/three.module.js';
+//import * as THREE from './node_modules/three/build/three.module.js';
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.module.js";
 import { STLLoader } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/loaders/STLLoader.js";
 import { OrbitControls } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js";
 import Stats from 'https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/libs/stats.module.js';
+import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/loaders/FBXLoader.js";
 
 // Constants and Configuration
 const upVector = new THREE.Vector3(0, 0, 1);
-const materialTube = new THREE.MeshMatcapMaterial({ 
-    color: 0xFF8600, 
-    transparent: true,
-    opacity: 1 // Adjust the opacity value between 0 (completely transparent) and 1 (completely opaque)
+const matcapTexture = new THREE.TextureLoader().load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/matcaps/matcap-porcelain-white.jpg');
+const materialTube = new THREE.MeshMatcapMaterial({
+    color: 0xFF8600, // Base color of the material
+    matcap: matcapTexture, // Apply the matcap texture
+    transparent: false, // Transparency setting
+    opacity: 1, // Opacity setting
+    flatShading: false // Enable flat shading if needed
 });
-const materialTool = new THREE.MeshMatcapMaterial({ color: 0xB0B0B0 });
+const materialTool = new THREE.MeshMatcapMaterial({ color: 0xB0B0B0, matcap: matcapTexture });
 const transparentLineMaterial = new THREE.LineBasicMaterial({ color: 0xFF8600, transparent: false, opacity: 1, side: THREE.DoubleSide });
 const highlightLineMaterial = new THREE.LineBasicMaterial({ color: 0x00c062, transparent: false, opacity: 1, side: THREE.DoubleSide });
 const pointMaterial = new THREE.MeshBasicMaterial({ color: 0x00c062 });
@@ -18,6 +24,10 @@ const pointMaterial_highlight = new THREE.MeshBasicMaterial({ color: 0xFFFFFF })
 const gridEdgeLength = 3000; // mm
 let gridSpacing = 100; // mm, initial grid spacing
 const maxJointsWithoutPermission = 2;
+
+let loadedWeldHead = null; // Store a reference to the loaded weld head model
+let angleSliderVal = 0;
+
 
 let renderer, scene, camera, controls;
 let currentMeshes = [];
@@ -54,7 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Scene and Camera Setup
         THREE.Object3D.DefaultUp = upVector;
         scene = new THREE.Scene();
-        
+        const light = new THREE.AmbientLight( 0x404040 ); // soft white light
+        scene.add( light );
+
         const map = document.getElementById('threejsDisplay');
         const mapDimensions = map.getBoundingClientRect();
         camera = new THREE.PerspectiveCamera(50, mapDimensions.width / mapDimensions.height, 1, 100000);
@@ -285,10 +297,13 @@ async function addJoint(x = "-", y = "-", z = "-") {
         <div class="form-group mb-2 d-flex align-items-center">
             <select class="form-control form-control-sm flex-grow-1" id="jointType${jointNumber}" name="jointType${jointNumber}" style="appearance: none;">
                 <option value="" disabled selected>-Select Joint Type-</option>
+                <option value="Flanged">Flanged</option>
+                <option value="hole">Simple Hole</option>
                 <option value="1/4">Flared 1/4</option>
                 <option value="1/2">Flared 1/2</option>
                 <option value="1">Flared 1</option>
-                <option value="Flanged">Flanged</option>
+                <option value="midspan">MidSpan Support</option>
+                <option value="weldHead">Weld Head</option>
             </select>
             <button type="button" id="selectLocation${jointNumber}" class="btn btn-success btn-sm" style="width: 19em; margin-left: 0.5em;">Select Location</button>
         </div>
@@ -308,6 +323,7 @@ async function addJoint(x = "-", y = "-", z = "-") {
         </div>
         <div id="additionalInputs${jointNumber}"></div>
     `;
+
 
     document.getElementById('jointsContainer').appendChild(jointContainer);
     document.getElementById(`jointType${jointNumber}`).addEventListener('change', function () {
@@ -686,6 +702,12 @@ function updateGrid() {
 }
 
 function loadFileUpload(file) {
+    // Add lighting
+    const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 5, 5).normalize();
+    scene.add(directionalLight);
     if (file) {
         const loader = new STLLoader();
         const url = URL.createObjectURL(file);
@@ -934,8 +956,169 @@ function updateJointType(selectElement, additionalInputsId) {
                 <span class="small ms-2" style="width: 15em;">[deg]</span>
             </div>
         `;
+    } else if (selectElement.value === 'midspan') {
+        additionalInputs.innerHTML = `
+            <div class="form-group d-flex align-items-center mb-2 mt-2">
+                <label for="diameter${jointArray.length}" class="me-2" style="width: 20em;">Diameter</label>
+                <input type="text" class="form-control form-control-sm" name="diameter${jointArray.length}" placeholder="-">
+                <span class="small ms-2"">[mm]</span>
+            </div>
+            <div class="form-group d-flex align-items-center mb-2 mt-2">
+                <label for="offset${jointArray.length}" class="me-2" style="width: 20em;">Offset</label>
+                <input type="text" class="form-control form-control-sm" name="offset${jointArray.length}" placeholder="-">
+                <span class="small ms-2"">[mm]</span>
+            </div>
+        `;
+    } else if (selectElement.value === 'hole') {
+        additionalInputs.innerHTML = `
+            <div class="form-group d-flex align-items-center mb-2 mt-2">
+                <label for="diameter${jointArray.length}" class="me-2" style="width: 20em;">Diameter</label>
+                <input type="text" class="form-control form-control-sm" name="diameter${jointArray.length}" placeholder="-">
+                <span class="small ms-2"">[mm]</span>
+            </div>
+            
+        `;
     }
 }
+
+
+// Weld Interference Checks
+document.getElementById('interferenceCheckSwitch').addEventListener('change', function() {
+    const interferenceOptions = document.getElementById('interferenceOptions');
+    if (this.checked) {
+        interferenceOptions.style.display = 'block';
+    } else {
+        interferenceOptions.style.display = 'none';
+        removeWeldHeadModels();
+        document.getElementById('weldHeadModel').selectedIndex = 0;
+        document.getElementById('jointNumber').selectedIndex = 0;
+        document.getElementById('angleSlider').selectedIndex = 0;
+        document.getElementById('weldHeadImage').style.display = 'none';
+    }
+});
+
+document.getElementById('weldHeadModel').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    
+    //REMOVE PREVIOUS WELD HEAD
+    removeWeldHeadModels();
+
+    // Load the weld head
+    let modelName = selectedOption.getAttribute('value').substring(7).trim(); // Remove the first 7 characters and trim spaces
+    console.log(`Model Name: ${modelName}`); // Log the model number to verify
+    loadWeldHeadModel(modelName);
+
+    // Display the corresponding image
+    const imgSrc = selectedOption.getAttribute('data-img');
+    const weldHeadImage = document.getElementById('weldHeadImage');
+    if (imgSrc) {
+        weldHeadImage.src = imgSrc;
+        weldHeadImage.style.display = 'block';
+    } else {
+        weldHeadImage.style.display = 'none';
+    }
+});
+
+// Event listener for joint number selection
+document.getElementById('jointNumber').addEventListener('focus', function() {
+    const jointNumberSelect = document.getElementById('jointNumber');
+    // Clear existing options
+    jointNumberSelect.innerHTML = '<option value="" disabled selected>-Select Joint-</option>';
+    // Populate new options based on jointArray length
+    jointArray.forEach((joint, index) => {
+        const option = document.createElement('option');
+        option.value = joint.jointNumber;
+        option.text = `${joint.jointNumber}`;
+        jointNumberSelect.appendChild(option);
+    });
+});
+
+// reposition the weld head when the joint number is changed
+document.getElementById('jointNumber').addEventListener('change', function() {
+    updateWeldHeadLocation();
+});
+
+
+
+
+// Event listener for degree slider
+document.getElementById('angleSlider').addEventListener('input', function() {
+    angleSliderVal = parseFloat(this.value);
+    const angleInRadians = THREE.MathUtils.degToRad(angleSliderVal);
+
+    if (loadedWeldHead) {
+        // First reset the rotation to align with the joint vector
+        const jointNumber = document.getElementById('jointNumber').value;
+        const jointIndex = jointArray.findIndex(joint => joint.jointNumber == jointNumber);
+        const joint = jointArray[jointIndex];
+        const jointVector = joint.jointVector.clone().normalize();
+
+        // Align the object's up axis (assumed to be Z-axis) to the joint vector
+        const quaternion = new THREE.Quaternion();
+        const objUpAxis = new THREE.Vector3(0, 0, 1); // Assuming the object's up axis is the Z-axis
+        quaternion.setFromUnitVectors(objUpAxis, jointVector);
+        loadedWeldHead.quaternion.copy(quaternion);
+
+        // Apply the absolute rotation around the local Z-axis
+        const additionalRotation = new THREE.Quaternion();
+        additionalRotation.setFromAxisAngle(objUpAxis, angleInRadians);
+        loadedWeldHead.quaternion.multiply(additionalRotation);
+    }
+});
+
+// Function to load and display the weld head model
+function loadWeldHeadModel(modelName, jointLocation) {
+    removeWeldHeadModels();
+    const loader = new FBXLoader();
+    loader.load(`static/weldheads/${modelName}.fbx`, function(object) {
+        // Store the reference to the loaded weld head model
+        loadedWeldHead = object;
+
+        scene.add(object);
+    }, undefined, function(error) {
+        console.error('An error occurred while loading the FBX model:', error);
+    });
+}
+
+// Function to remove all weld head models
+function removeWeldHeadModels() {
+    if (loadedWeldHead) {
+        scene.remove(loadedWeldHead);
+    }
+}
+
+function updateWeldHeadLocation(){
+    const jointNumber = document.getElementById('jointNumber').value;
+    const jointIndex = jointArray.findIndex(joint => joint.jointNumber == jointNumber);
+    const joint = jointArray[jointIndex];
+    const jointLocation = joint.jointLocation;
+    const jointVector = joint.jointVector;
+
+    if (loadedWeldHead && jointLocation) {
+        // Move the loaded weld head to the joint location and apply rotation
+        loadedWeldHead.position.copy(jointLocation);
+        loadedWeldHead.lookAt(jointLocation.clone().add(jointVector));
+        // Alternate quaternion rotation
+        // rotate to the joint vector
+        //const quaternion = new THREE.Quaternion()
+        //const objUpAxis = new THREE.Vector3( 0, 0, 1 );
+        //quaternion.setFromUnitVectors(objUpAxis, jointVector.normalize())
+        //loadedWeldHead.applyQuaternion(quaternion);
+        
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
 // Overscreen popup
 function showGenericModal(message, pageUrl, linkTitle) {
     const modalBody = document.getElementById('genericModalBody');

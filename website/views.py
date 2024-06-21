@@ -4,7 +4,7 @@ import tempfile
 import zipfile
 import cadquery as cq
 from cadquery import exporters, importers
-from CADQuery_flask import Joint, flaredJoint, flangeJoint, generateSupports
+from CADQuery_flask import Joint, flaredJoint, flangeJoint, midspanJoint, holeJoint, generateSupports
 from flask import current_app as app 
 from .payment import updateSubscriptionStatus
 
@@ -105,6 +105,7 @@ def process_joints():
     deleteFiles()  # Delete any previously stored files
     joint_data = []
     joint_count = int(request.form.get('jointCount')) # Adjust joint_count calculation, excluding tolerance and thickness inputs
+    
     def sanitize_input(value):
         if value:
             return value.replace('−', '-')
@@ -129,7 +130,6 @@ def process_joints():
             num_bolts = sanitize_input(request.form.get(f'numberOfBolts{i}'))
             clocking_offset = sanitize_input(request.form.get(f'clockingOffset{i}'))
             if not all([bolt_circle_diameter, bolt_hole_diameter, num_bolts, clocking_offset]):
-                #flash('Incomplete flanged joint data')
                 return jsonify({'error': 'Incomplete flanged joint data'})
             joint_data.append({
                 'location': [float(loc) for loc in location],
@@ -140,9 +140,34 @@ def process_joints():
                 'num_bolts': int(num_bolts),  # Ensure num_bolts is an integer
                 'clocking_offset': float(clocking_offset)
             })
+        elif joint_type == 'midspan':
+            diameter = sanitize_input(request.form.get(f'diameter{i}'))
+            offset = sanitize_input(request.form.get(f'offset{i}'))
+            if not diameter or not offset:
+                return jsonify({'error': 'Incomplete midspan joint data'})
+            joint_data.append({
+                'location': [float(loc) for loc in location],
+                'normal_vector': [float(vec) for vec in normal_vector],
+                'joint_type': joint_type,
+                'diameter': float(diameter),
+                'offset': float(offset)
+            })
+        elif joint_type == 'hole':
+            diameter = sanitize_input(request.form.get(f'diameter{i}'))
+            if not diameter:
+                return jsonify({'error': 'Incomplete joint data'})
+            joint_data.append({
+                'location': [float(loc) for loc in location],
+                'normal_vector': [float(vec) for vec in normal_vector],
+                'joint_type': joint_type,
+                'diameter': float(diameter),
+            })
+        elif joint_type == 'weldHead':
+            print("weldHead") # doing nothing. Weld head is just for visualization purposes
+            # Continue to the next iteration without appending to joint_data
+            continue
         else:
             if not all([joint_type, *location, *normal_vector]):
-                #flash('Incomplete joint data')
                 return jsonify({'error': 'Incomplete joint data'})
             joint_data.append({
                 'location': [float(loc) for loc in location],
@@ -161,6 +186,14 @@ def process_joints():
                 data['location'], data['normal_vector'], data['bolt_circle_diameter'],
                 data['num_bolts'], data['bolt_hole_diameter'], data['clocking_offset']
             ))
+        elif data['joint_type'] == 'midspan':
+            joints.append(midspanJoint(
+                data['location'], data['normal_vector'], data['diameter'], data['offset']
+            ))
+        elif data['joint_type'] == 'hole':
+            joints.append(holeJoint(
+                data['location'], data['normal_vector'], data['diameter']
+            ))
         else:
             joints.append(flaredJoint(data['location'], data['normal_vector'], data['joint_type']))
 
@@ -169,6 +202,7 @@ def process_joints():
     generated_files = generateSupports(joints, user_folder, tolerance, plateThk)  # Call the function to generate the tooling files
     generated_files = [os.path.basename(f) for f in generated_files]  # Get only the filenames
     return jsonify({'generated_files': generated_files})
+
 
 
 
