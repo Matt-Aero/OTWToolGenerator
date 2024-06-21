@@ -1070,7 +1070,7 @@ document.getElementById('angleSlider').addEventListener('input', function() {
 function loadWeldHeadModel(modelName, jointLocation) {
     removeWeldHeadModels();
     const loader = new FBXLoader();
-    loader.load(`static/weldheads/${modelName}.fbx`, function(object) {
+    loader.load(`static/weldHeads/${modelName}.fbx`, function(object) {
         // Store the reference to the loaded weld head model
         loadedWeldHead = object;
 
