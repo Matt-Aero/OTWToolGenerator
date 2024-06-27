@@ -10,11 +10,21 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-center vh-100 text-white">
-    <div class="text-center" style="max-width: 50em; margin: 0 auto; padding: 2em;">
-        <h1 class="heading-black text-capitalize">Design tooling for welded tubes in minutes, <span style="color: #00c062;">in-browser</span></h1>
-        <p class="lead py-3">The app to design precision fixturing for orbital tube welded (OTW) assemblies in minutes. Try now for free.</p>
-        <a href="{{ url_for('views.design') }}" class="btn-custom btn-outline-light d-inline-flex flex-row align-items-center">
+<div class="d-flex flex-column justify-content-center align-items-center text-white" style="padding-top: 8em;">
+    <div class="text-center" style="max-width: 63em; padding: 0em;">
+        <h1 class="heading-black text-capitalize">Design tooling for welded tubes <span class="highlight-green">in minutes</span></h1>
+        <div style="text-align: center; padding-top: 1em;">
+            <video width="800" autoplay muted loop preload="auto" poster="{{ url_for('static', filename='assets/video_screensaver.png') }}" style="max-width: 100%; height: auto; border: 2px solid #A9A9A9;">
+                <source src="{{ url_for('static', filename='assets/homepage/homepagevideo.mp4') }}" type="video/mp4">
+            </video>
+        </div>
+        <p class="py-3">
+            <i class="fas fa-check-circle" style="color: #00c062;"></i> Run in-browser or desktop 
+            <i class="fas fa-check-circle" style="color: #00c062;"></i> Export .STEP Files
+            <i class="fas fa-check-circle" style="color: #00c062;"></i> Weld head interference checks
+        </p>
+        
+        <a href="{{ url_for('views.design') }}" class="btn-custom btn-outline-light d-inline-flex flex-row">
             Design Now
         </a>
     </div>
@@ -25,15 +35,15 @@
         <div class="row">
             <div class="col feature-box">
                 <h3><span class="highlight-green">10x</span> Faster</h3>
-                <p>Save hours of engineering design time. Create tooling in seconds and export parts from the browser. Don't worry about tolerancing, work plane positioning, or design errors.</p>
+                <p>Save hours of engineering design time. Don't worry about tolerancing, work plane positioning, or design errors.</p>
             </div>
             <div class="col feature-box">
-                <h3><span class="highlight-green">Slash</span> CAD Licenses</h3>
-                <p>Anyone can design completely in browser. No downloads required.</p>
+                <h3><span class="highlight-green">Delete</span> CAD Licenses</h3>
+                <p>Anyone can design in browser or on desktop. No additional CAD licenses required.</p>
             </div>
             <div class="col feature-box">
                 <h3><span class="highlight-green">Secure</span></h3>
-                <p>Uploaded files are temporarily stored and deleted after you leave the browser.</p>
+                <p>Uploaded files are temporarily stored and deleted after you leave the session.</p>
             </div>
             <div class="col feature-box">
                 <h3><span class="highlight-green">Precise</span></h3>
@@ -48,8 +58,14 @@
         <h2 >How it Works <i class="fas fa-arrow-right"></i></h2>
         <div class="row align-items-center my-3">
             <div class="col-md-7">
-                <h4><span class="step-number">1</span>Upload tubing assembly</h3>
+                <h4><span class="step-number">1</span>Securely Upload tubing assembly</h4>
+                <h6 style="color: #d3d3d3;">
+                    Files are stored temporarily, and deleted after your session ends. 
+                    <a href="{{ url_for('views.download') }}" style="color: #00c062; text-decoration: underline;">Download</a> 
+                    OTG for desktop for additional security.
+                </h6>
             </div>
+            
             <div class="col-md-5 text-center">
                 <img src="{{ url_for('static', filename='assets/homepage/assembly_above_workbench2.png') }}" alt="Upload your tubing assembly" class="img-fluid bordered-img">
             </div>
@@ -57,6 +73,9 @@
         <div class="row align-items-center my-3">
             <div class="col-md-7">
                 <h4><span class="step-number">2</span>Select tooling locations</h3>
+                <h6 style="color: #d3d3d3;">
+                    Simply click on the edges where you want to constrain the tube.
+                </h6>
             </div>
             <div class="col-md-5 text-center">
                 <img src="{{ url_for('static', filename='assets/homepage/joint_selection.png') }}" alt="Select where you want tooling placed" class="img-fluid bordered-img">
@@ -109,23 +128,15 @@
         <div class="row align-items-center my-3">
             <div class="col-md-7">
                 <h4><span class="step-number">4</span>Generate and Export Production-ready .STEP files</h3>
+                <h6 style="color: #d3d3d3;">
+                    Exported files are ready to send to a manufacturing house for waterjet or laser cutting.
+                </h6>
             </div>
             <div class="col-md-5 text-center">
                 <img src="{{ url_for('static', filename='assets/homepage/final_assembly.png') }}" alt="Generate production-ready .STEP files" class="img-fluid bordered-img">
             </div>
         </div>
     </div>
-
-    <div class="custom-container py-5" style="text-align: center;">
-        <hr style="border-top: 2px solid white;">
-        <h2>See OTG in Action<i class="fas fa-arrow-right"></i></h2>
-        <div style="display: flex; justify-content: center; align-items: center;">
-            <video width="640" height="360" muted controls preload="none" poster="{{ url_for('static', filename='assets/video_screensaver.png') }}" style="max-width: 100%; height: auto; border: 2px solid #A9A9A9;">
-                <source src="{{ url_for('static', filename='assets/demo_video.mp4') }}" type="video/mp4">
-            </video>
-        </div>
-    </div>
-    
 
     
     <div class="d-flex align-items-center justify-content-center text-white">
@@ -135,9 +146,7 @@
                 Design Now
             </a>
         </div>
-        <div class="arrow">
-            <a href="#features"><i class="fas fa-chevron-down fa-2x"></i></a>
-        </div>
+        
     </div>
 
 

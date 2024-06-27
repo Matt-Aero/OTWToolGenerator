@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='signup.css') }}">
+
+    <style>
+        /* Custom styles for the download page */
+        .bg-black {
+            background-color: #000000; /* Black background for the entire page */
+        }
+
+        .btn-primary, .btn-success {
+            background-color: #00c062;
+            border-color: #00c062;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #00c062;
+            border-color: #00c062;
+        }
+        .img-fluid {
+            max-width: 100%;
+            height: auto;
+            border-radius: 1em; /* Rounded borders for the image */
+            border: 2px solid #ffffff; /* White border for the image */
+            object-fit: contain; /* Maintain aspect ratio */
+        }
+        
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid bg-black vh-100">
+    <div class="row d-flex justify-content-center align-items-center h-100">
+        <div class="col-lg-8">
+            <div class="card text-white" style="background-color: transparent; border: none;">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <h1 class="card-title text-start">OTG For Windows</h1>
+                            <p class="card-text text-start">
+                                Design tooling for welded tubes on your desktop.
+                                Contact sales for enterprise deployments - <a href="mailto:otwtoolgenerator@gmail.com">otwtoolgenerator@gmail.com</a>
+                            </p>
+                            {% if session.get('userSubStatus') == True %}
+                                <a href="#" class="btn btn-secondary btn-lg btn-block disabled" aria-disabled="true">Download (64-bit), v1.39.88</a>
+                            {% else %}
+                                <a href="{{ url_for('payment.pricing') }}" class="btn btn-primary btn-lg btn-block">Pricing</a>
+                                <p class="card-text text-start">
+                                    Purchase a monthly subscription to download OTG for desktop.
+                                </p>
+                            {% endif %}
+                            <p class="card-text text-start mt-2">OTG for Windows will be released soon.</p>
+                        </div>
+                        <div class="col-md-7">
+                            <img src="{{ url_for('static', filename='assets/final_assembly.png') }}" alt="Desktop App" class="img-fluid h-100" style="border-radius: 1em; border: 2px solid #ffffff;">
+                        </div>                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}

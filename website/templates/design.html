@@ -72,11 +72,11 @@
                     <div class="col-6"> 
                         <select class="form-control form-control-sm" id="weldHeadModel" name="weldHeadModel" style="flex-grow: 1;">
                             <option value="" disabled selected>-Select Weld Head-</option>
-                            <option value="AXXAIR SAMX-17" data-img="{{ url_for('static', filename='weldHeads/SAMX-17.png') }}">AXXAIR SAMX-17</option>
-                            <option value="AXXAIR SAMX-25" data-img="{{ url_for('static', filename='weldHeads/SAMX-25.png') }}">AXXAIR SAMX-25</option>
-                            <option value="AXXAIR SATFX-52" data-img="{{ url_for('static', filename='weldHeads/SATFX-52.png') }}">AXXAIR SATFX-52</option>
-                            <option value="AXXAIR SATFX-76" data-img="{{ url_for('static', filename='weldHeads/SATFX-76.png') }}">AXXAIR SATFX-76</option>
-                            <option value="AXXAIR SATFX-115" data-img="{{ url_for('static', filename='weldHeads/SATFX-115.png') }}">AXXAIR SATFX-115</option>
+                            <option value="AXXAIR SAMX-17" data-link="https://www.axxair.com/thin-tubes-products/samx-17" data-img="{{ url_for('static', filename='weldHeads/SAMX-17.png') }}">AXXAIR SAMX-17</option>
+                            <option value="AXXAIR SAMX-25" data-link="https://www.axxair.com/thin-tubes-products/samx-25" data-img="{{ url_for('static', filename='weldHeads/SAMX-25.png') }}">AXXAIR SAMX-25</option>
+                            <option value="AXXAIR SATFX-52" data-link="https://www.axxair.com/thin-tubes-products/satf-40ndhx" data-img="{{ url_for('static', filename='weldHeads/SATFX-52.png') }}">AXXAIR SATFX-52</option>
+                            <option value="AXXAIR SATFX-76" data-link="https://www.axxair.com/thin-tubes-products-usa/satf-65ndhx" data-img="{{ url_for('static', filename='weldHeads/SATFX-76.png') }}">AXXAIR SATFX-76</option>
+                            <option value="AXXAIR SATFX-115" data-link="https://www.axxair.com/thin-tubes-products/satf-115ndhx" data-img="{{ url_for('static', filename='weldHeads/SATFX-115.png') }}">AXXAIR SATFX-115</option>
                         </select>
                     </div>
                     
@@ -85,6 +85,11 @@
                 <div class="row text-center mx-auto">
                     <img id="weldHeadImage" src="" class="mx-auto" alt="Selected Weld Head" style="max-width: 70%; max-height: 100%; display: none;">
                 </div>
+
+                <div class="row text-center mx-auto">
+                    <a id="weldheadlink" href="" target="_blank" style="display: none; text-decoration: none;">datasheet</a>
+                </div>
+                
                 
                 <div class="row mb-2 d-flex align-items-center">
                     <div class="col"> 
@@ -102,7 +107,7 @@
                         <label for="angleSlider" class="form-label">Rotation</label>
                     </div>
                     <div class="col-6"> 
-                        <input type="range" class="form-range" id="angleSlider" min="0" max="400" step="1" value="0">
+                        <input type="range" class="form-range" id="angleSlider" min="0" max="360" step="1" value="0">
                     </div>
                 </div>
             </div>

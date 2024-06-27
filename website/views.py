@@ -96,8 +96,19 @@ def privacy():
 
 @views.route('/design')
 def design():
+    if 'user' not in session:
+        return redirect(url_for('auth.login'))  # Redirect to login page if not signed in
     updateSubscriptionStatus()
     return render_template('design.html')
+
+
+@views.route('/download')
+def download():
+    if 'user' not in session:
+        return redirect(url_for('auth.login'))  # Redirect to login page if not signed in
+    updateSubscriptionStatus()
+    return render_template('download.html')
+
 
 @views.route('/process_joints', methods=['POST'])
 def process_joints():

@@ -121,9 +121,10 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
         # create a plane where the joint is
         joint_location = joints[i].location
         joint_normal_vector = joints[i].normal_vector
+        joint_normal_vector = joint_normal_vector / np.linalg.norm(joint_normal_vector) # normalize
+        
         # Update the location with an offset to account for the plate thickness
-        joint_normal_vector_norm = joint_normal_vector / np.linalg.norm(joint_normal_vector)
-        joint_location = joint_location+joint_normal_vector_norm*plateThk/2
+        joint_location = joint_location+joint_normal_vector*plateThk/2
 
         # Replace zero values in normal_vector with small non-zero
         joint_normal_vector = np.array([0.0001 if component == 0 else component for component in joint_normal_vector])
@@ -189,11 +190,16 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
                 )
             
             
+            offset = (plateThk/2+plateThk) *  1/math.sqrt(joint_normal_vector[2]**2+0.001) # Plate for cutting side supports to increase weld head clearence
+            extrudeDist = plateWidth*10
+            if joint_normal_vector[2]<0:
+                offset = -offset
+                extrudeDist = -extrudeDist
             facePlate_forCut = (
                 jointWorkPlane
-                .transformed(offset=cq.Vector(0, 0, plateThk/2+plateThk), rotate=cq.Vector(0, 0, 0)) # rotating 90deg so we are sketching on the side
+                .transformed(offset=cq.Vector(0, 0, offset), rotate=cq.Vector(0, 0, 0)) # rotating 90deg so we are sketching on the side
                 .rect(plateHeight*10, plateWidth*10)
-                .extrude(plateWidth*10, both=False)
+                .extrude(extrudeDist, both=False)
             )
             
             
@@ -217,6 +223,7 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             facePlate = facePlate.union(sideTab_ny)
             facePlate = facePlate.union(sideTab_py)
             
+            
             # Export facePlate to STL an .step files
             facePlate_path_stl = os.path.join(export_dir, f"joint_{i+1}_facePlate.stl")
             facePlate_path_step = os.path.join(export_dir, f"joint_{i+1}_facePlate.step")
@@ -232,31 +239,35 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             sidePlane = cq.Plane(sidePlaneGlobalCoords, tuple(sidePlaneXdir), tuple([0, 0, 1])) # create the new plane
             sideWorkPlane = cq.Workplane(sidePlane) # Create a workplane using the defined Plane
         
-            tabHeightMax = tabHeight / 2 + plateThk
+            sideSupportHeightMax = (tabHeight / 2)*math.sqrt(joint_normal_vector[0]**2+joint_normal_vector[1]**2) + 2.25*plateThk # scaling by the magnitude of the x/y components. Makes the plate more efficient
+            sideSupportWidthMax = (tabHeight / 2)*math.sqrt(joint_normal_vector[2]**2) + 2.25*plateThk # scaling by the magnitude of the x/y components. Makes the plate more efficient
+            
             sideSupport = (
                 sideWorkPlane
                 .transformed(offset=cq.Vector(0, 0, 0), rotate=cq.Vector(90, 0, 0)) # rotating 90deg so we are sketching on the side
-                .moveTo(tabHeightMax, tabHeightMax)
-                .lineTo(-tabHeightMax, tabHeightMax)
-                .lineTo(-tabHeightMax, -joint_location[2] + plateThk)
-                .lineTo(tabHeightMax, -joint_location[2] + plateThk)
+                .moveTo(sideSupportWidthMax, sideSupportHeightMax)
+                .lineTo(-sideSupportWidthMax, sideSupportHeightMax)
+                .lineTo(-sideSupportWidthMax, -joint_location[2] + plateThk)
+                .lineTo(sideSupportWidthMax, -joint_location[2] + plateThk)
                 .close()
                 .extrude(-plateThk)
             )
             
-            #sideSupport = sideSupport.cut(facePlate_forCut)
-    
+            drawAxes(sideWorkPlane)
+
+            bottomTabHeight = sideSupportWidthMax # height of the tab on the bottom of the side support
             bottomTabWorkPlane = sideWorkPlane.transformed(offset=cq.Vector(0,plateThk/2,-joint_location[2] + plateThk / 2 + z_plate_offset), rotate=cq.Vector(90, 0, 0))
             bottomTab = ( # creating a separate object here so we can use it for cutting the bottom plate
                 bottomTabWorkPlane
-                .rect(tabHeight, tabWidth)
+                .rect(bottomTabHeight, tabWidth)
                 .extrude(-plateThk/2, both=True)
             )
             sideSupport = sideSupport.union(bottomTab)
+            sideSupport = sideSupport.cut(facePlate_forCut)
         
             ##################
             # Create Toleranced tab object for cutting from the side support
-            drawAxes(jointWorkPlane)
+            #drawAxes(sideWorkPlane)
             # Method: Draw the circles where you want them. Apply rotation to all items in stack using rotateaboutcenter, then cut into side pieces
             sideTab_reliefs = (
                 jointWorkPlane
@@ -307,7 +318,7 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             bottomTab_reliefs = ( # creating a separate object here so we can use it for cutting the bottom plate
                 bottomTabWorkPlane
                 .transformed(offset=cq.Vector(0, 20, 0), rotate=cq.Vector(90, 0, 0)) # rotating 90deg so we are sketching on the side
-                .rect(tabHeight+tabTol, tabWidth+tabTol, forConstruction=True)
+                .rect(bottomTabHeight+tabTol, tabWidth+tabTol, forConstruction=True)
                 .vertices()
                 .circle(radiusRelief)  # Add circles at each vertex
                 .extrude(50)  # Extrude the circles
@@ -317,7 +328,7 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             bottomTab_box_tol = (
                 bottomTabWorkPlane
                 .transformed(offset=cq.Vector(0, 20, 0), rotate=cq.Vector(90, 0, 0)) # rotating 90deg so we are sketching on the side
-                .rect(tabHeight+tabTol, tabWidth+tabTol)
+                .rect(bottomTabHeight+tabTol, tabWidth+tabTol)
                 .extrude(50)
                 #.rotate(sideWorkPlane.plane.toWorldCoords((0, 0, 0)), sideWorkPlane.plane.toWorldCoords((1, 0, 0)), 90)
             )
@@ -329,9 +340,9 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
         elif joints[i].type == "midspan":
             # Offset Vector by the offset
             offset = joints[i].offset
-            joint_location = joint_location+offset*joint_normal_vector_norm
+            joint_location = joint_location+offset*joint_normal_vector
             
-            jointPlane = cq.Plane(tuple(joint_location), (0, 0, 1), (joint_normal_vector[0], joint_normal_vector[1], 0))
+            jointPlane = cq.Plane(tuple(joint_location), (0, 0, 1), (joint_normal_vector[0], joint_normal_vector[1], 0)) 
             midSpanWorkPlane = (
                     cq.Workplane(jointPlane)
                     .transformed(rotate=(0, 0, -90), offset=(0,0,plateThk/2))  # Rotate 90 degrees around the Z-axis
@@ -439,6 +450,5 @@ def drawAxes(workPlane):
     #show_object(x_axis, name="X-axis", options={"color": "red"})
     #show_object(y_axis, name="Y-axis", options={"color": "green"})
     #show_object(z_axis, name="Z-axis", options={"color": "blue"})
-
 
 

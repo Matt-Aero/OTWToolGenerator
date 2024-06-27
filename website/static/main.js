@@ -37,6 +37,7 @@ const pointer = new THREE.Vector2();
 let edge_hover = null;  // holds the current edge being hovered over
 let centerPoint_hover = null; // holds the center point of the current edge being hovered over
 let visualInputJointId = null; // Global parameter to track the currently selected joint for visual input
+let torusHover = null;
 let jointArray = [];
 /*
 jointArray.push({
@@ -64,12 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Scene and Camera Setup
         THREE.Object3D.DefaultUp = upVector;
         scene = new THREE.Scene();
-        const light = new THREE.AmbientLight( 0x404040 ); // soft white light
-        scene.add( light );
+        var ambientLight = new THREE.AmbientLight(0x404040); // Increase intensity to 2
+        scene.add(ambientLight);
 
         const map = document.getElementById('threejsDisplay');
         const mapDimensions = map.getBoundingClientRect();
-        camera = new THREE.PerspectiveCamera(50, mapDimensions.width / mapDimensions.height, 1, 100000);
+        camera = new THREE.PerspectiveCamera(55, mapDimensions.width / mapDimensions.height, 1, 100000);
         camera.position.set(500, 500, 500);
         camera.up.copy(upVector);
         camera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -91,6 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // This function does stuff
             });
         });
+
+        animate();
 
         
 
@@ -510,6 +513,29 @@ function edgeSelection() {
             centerPoint_hover = new THREE.Mesh(pointGeometry, pointMaterial_highlight);
             centerPoint_hover.position.copy(center); 
             scene.add(centerPoint_hover);
+
+
+
+            if (torusHover){
+                scene.remove(torusHover);
+            }
+            // Testing a torus geometry instead of just hghlighting the edges
+            const permanentSphere = new THREE.Mesh(new THREE.SphereGeometry(2, 32, 32), pointMaterial);
+            permanentSphere.position.copy(centerPoint_hover.position);
+            permanentSphere.name = 'centerPoint';
+            permanentSphere.userData.id = jointNumber;
+            permanentSphere.userData.isSelected = true;
+            const [normalVect, radius] = computeJointNormal(permanentSphere.position, edge_hover[0]);
+            const circleGeometry = new THREE.TorusGeometry(radius, radius*.04, 64, 64);
+            const circleMaterial = highlightLineMaterial;
+            torusHover = new THREE.Mesh(circleGeometry, circleMaterial);
+            const quaternion = new THREE.Quaternion();
+            quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normalVect);
+            torusHover.applyQuaternion(quaternion);
+            torusHover.position.set(permanentSphere.position.x, permanentSphere.position.y, permanentSphere.position.z);
+            scene.add(torusHover);
+
+
         }  
     } else { // remove highlighted edge and center point if they exist
         if (edge_hover){
@@ -519,6 +545,9 @@ function edgeSelection() {
         if (centerPoint_hover){
             scene.remove(centerPoint_hover);
             centerPoint_hover = null;
+        }
+        if (torusHover){
+            scene.remove(torusHover);
         }
     }
 }
@@ -546,6 +575,10 @@ function clearScene() {
 
     // redraw the grid and axis
     updateGrid();
+
+    // re-add the light
+    const light = new THREE.AmbientLight( 0x404040 ); // soft white light
+    scene.add( light );
 
     // Clear the file input value
     document.getElementById('fileUpload').value = '';
@@ -992,8 +1025,9 @@ document.getElementById('interferenceCheckSwitch').addEventListener('change', fu
         removeWeldHeadModels();
         document.getElementById('weldHeadModel').selectedIndex = 0;
         document.getElementById('jointNumber').selectedIndex = 0;
-        document.getElementById('angleSlider').selectedIndex = 0;
+        document.getElementById('angleSlider').value = 0;
         document.getElementById('weldHeadImage').style.display = 'none';
+        document.getElementById('weldheadlink').style.display = 'none';
     }
 });
 
@@ -1011,12 +1045,29 @@ document.getElementById('weldHeadModel').addEventListener('change', function() {
     // Display the corresponding image
     const imgSrc = selectedOption.getAttribute('data-img');
     const weldHeadImage = document.getElementById('weldHeadImage');
+    document.getElementById('jointNumber').selectedIndex = 0; // resetting joint number to none
     if (imgSrc) {
         weldHeadImage.src = imgSrc;
         weldHeadImage.style.display = 'block';
     } else {
         weldHeadImage.style.display = 'none';
     }
+
+    // display the link to the weld head
+    // Display the link to the weld head
+    const productLink = selectedOption.getAttribute('data-link');
+    const weldHeadLink = document.getElementById('weldheadlink');
+    if (productLink) {
+        weldHeadLink.href = productLink;
+        weldHeadLink.style.display = 'inline'; // Make sure the link is visible
+    } else {
+        weldHeadLink.style.display = 'none'; // Hide the link if no URL is provided
+    }
+
+    //reset the angle slider
+    document.getElementById('angleSlider').value = 0;
+
+
 });
 
 // Event listener for joint number selection
@@ -1035,6 +1086,7 @@ document.getElementById('jointNumber').addEventListener('focus', function() {
 
 // reposition the weld head when the joint number is changed
 document.getElementById('jointNumber').addEventListener('change', function() {
+    scene.add(loadedWeldHead);
     updateWeldHeadLocation();
 });
 
@@ -1043,7 +1095,7 @@ document.getElementById('jointNumber').addEventListener('change', function() {
 
 // Event listener for degree slider
 document.getElementById('angleSlider').addEventListener('input', function() {
-    angleSliderVal = parseFloat(this.value);
+    angleSliderVal = document.getElementById('angleSlider').value;
     const angleInRadians = THREE.MathUtils.degToRad(angleSliderVal);
 
     if (loadedWeldHead) {
@@ -1073,8 +1125,7 @@ function loadWeldHeadModel(modelName, jointLocation) {
     loader.load(`static/weldHeads/${modelName}.fbx`, function(object) {
         // Store the reference to the loaded weld head model
         loadedWeldHead = object;
-
-        scene.add(object);
+        // note we do not show the weld head yet, until the user selects a joint
     }, undefined, function(error) {
         console.error('An error occurred while loading the FBX model:', error);
     });
@@ -1098,21 +1149,14 @@ function updateWeldHeadLocation(){
         // Move the loaded weld head to the joint location and apply rotation
         loadedWeldHead.position.copy(jointLocation);
         loadedWeldHead.lookAt(jointLocation.clone().add(jointVector));
-        // Alternate quaternion rotation
-        // rotate to the joint vector
-        //const quaternion = new THREE.Quaternion()
-        //const objUpAxis = new THREE.Vector3( 0, 0, 1 );
-        //quaternion.setFromUnitVectors(objUpAxis, jointVector.normalize())
-        //loadedWeldHead.applyQuaternion(quaternion);
-        
     }
 
 }
 
+function updateWeldHeadRotation(){
 
 
-
-
+}
 
 
 

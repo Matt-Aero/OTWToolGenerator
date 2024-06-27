@@ -1,6 +1,11 @@
 /* Import font */
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@700&display=swap');
 
+:root {
+    --green: #00c062;
+    --dark: #000000;
+    --light: #A9A9A9;
+  }
 
 .navbar, .navbar-dark, .nav, .navbar-brand {
     background-color: #000000 !important;
@@ -21,6 +26,7 @@
 
 body {
     font-family: 'IBM Plex Mono', monospace !important;
+    background-color: #000000;
 }
 
 /* Custom button styling */
@@ -33,19 +39,20 @@ body {
     transition: background-color 0.4s ease, color 0.4s ease;
     transition: border-color 0.4s ease, color 0.4s ease;
     text-decoration: none;
+    
 }
 
 #signupButton {
-    border: 2px solid white;
+    border: 2px solid var(--green);
     border-radius: 1em;
     color: white;
     background-color: transparent;
 }
 
 .btn-custom:hover, #signupButton:hover  {
-    background-color: #00c062;
+    background-color: var(--green);
     border: 2px solid;
-    border-color: #00c062;
+    border-color: var(--green);
 }
 
 .navbar-logo {
@@ -63,7 +70,7 @@ body {
 }
 
 .user-info a {
-    color: #00c062;
+    color: var(--green);
     text-decoration: none;
 }
 
@@ -72,5 +79,24 @@ body {
 }
 
 .btn-success {
-    background-color: #00c062 !important;
+    background-color: var(--green) !important;
+}
+
+
+/* Style the dropdown menu background and text color */
+.navbar .dropdown-menu {
+    background-color: #000000; /* Black background */
+    border-color: #A9A9A9; /* Optional: Border color to match navbar */
+}
+
+/* Style the dropdown items text color */
+.navbar .dropdown-menu .dropdown-item {
+    color: #ffffff; /* White text */
+}
+
+/* Style the dropdown items text color on hover */
+.navbar .dropdown-menu .dropdown-item:hover,
+.navbar .dropdown-menu .dropdown-item:focus {
+    background-color: var(--green); /* Green background on hover */
+    color: #ffffff; /* White text on hover */
 }

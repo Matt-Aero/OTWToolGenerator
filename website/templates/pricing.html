@@ -7,32 +7,63 @@
 <script src="https://js.stripe.com/v3/"></script>
 <script type="module" src="{{ url_for('static', filename='checkout.js') }}" defer></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='pricing.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 {% endblock %}
 
 {% block content %}
 <div class="background-black d-flex justify-content-center align-items-center vh-100">
-    <div class="card text-center">
-        <h1 class="card-title">Premium</h1>
-        <h2 class="price">${{ price }}/mo</h2>
-        <p class="description"><strong>Design Tooling in Minutes, Not Hours</strong></p>
-        <ul class="list-unstyled">
-            <li>• Generate unlimited tooling pieces and joints</li>
-            <li>• Export high quality .STEP files from the browser</li>
-            <li>• Create custom flanged end points by changing bolt circle diameter, #bolts, and bolt size</li>
-            <li>• Access to upcoming features! (interference checks, custom weld head inputs)</li>
-        </ul>
-        <div class="card-body">
-            {% if not session.get('user_email') %}
-                <a href="{{ url_for('auth.login') }}" class="btn btn-success">Sign In to Upgrade</a>
-            {% elif session.get('userSubStatus') == True %}
-                <button class="btn btn-success border-0" disabled>Membership Purchased</button>
-            {% elif not session.get('email_verified') %}
-                <button class="btn btn-warning border-0" disabled>Please Verify Email</button>
-            {% else %}
-                <button class="btn btn-success" id="checkout-button">Buy Now</button>
-            {% endif %}
+    <div class="row">
+        <!-- Free Plan Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card text-center">
+                <h1 class="card-title">Free</h1>
+                <h3 class="price">$0<span style="font-size: 0.5em;"> USD/mo</span></h3>
+                <p class="description"><strong>Try out OTG in-browser</strong></p>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check-circle text-success"></i> Create precision tooling in minutes</li>
+                    <li><i class="fas fa-check-circle text-success"></i> Export high quality .STEP files</li>
+                    <li><i class="fas fa-check-circle text-success"></i> Run in-browser</li>
+                    <li style="color: grey;"><i class="fas fa-check-circle"></i> Run on desktop</li>
+                    <li style="color: grey;"><i class="fas fa-check-circle"></i> Create custom joints</li>
+                    <li style="color: grey;"><i class="fas fa-check-circle"></i> Check interference with OTW weld heads</li>
+                </ul>
+                <div class="card-body">
+                    {% if session.get('user_email') %}
+                        <a href="{{ url_for('views.design') }}" class="btn btn-success">Design Now</a>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-success">Get Started</a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-        <p class="support">Contact support at OTWToolGenerator@gmail.com</p>
+        
+        <!-- Premium Plan Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card text-center">
+                <h1 class="card-title">Premium</h1>
+                <h3 class="price">${{ price }}<span style="font-size: 0.5em;"> USD/mo</span></h3>
+                <p class="description"><strong>Accelerate your design workflow</strong></p>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check-circle text-success"></i> Create precision tooling in minutes</li>
+                    <li><i class="fas fa-check-circle text-success"></i> Export high quality .STEP files</li>
+                    <li><i class="fas fa-check-circle text-success"></i> Run in-browser</li>
+                    <li><i class="fas fa-check-circle text-success"></i> Run on desktop</li>
+                    <li><i class="fas fa-check-circle text-success"></i> Create custom joints</li>
+                    <li><i class="fas fa-check-circle text-success"></i> Check interference with OTW weld heads</li>
+                </ul>
+                <div class="card-body">
+                    {% if not session.get('user_email') %}
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-success">Get Started</a>
+                    {% elif session.get('userSubStatus') == True %}
+                        <button class="btn btn-success border-0" disabled>Membership Purchased</button>
+                    {% elif not session.get('email_verified') %}
+                        <button class="btn btn-warning border-0" disabled>Please Verify Email</button>
+                    {% else %}
+                        <button class="btn btn-success" id="checkout-button">Buy Now</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -46,6 +77,4 @@
         <p class="mb-0">Contact: <a href="mailto:OTWToolGenerator@Gmail.com" style="color: white; text-decoration: none;">OTWToolGenerator@Gmail.com</a></p>
     </div>
 </footer>
-
-
 {% endblock %}
