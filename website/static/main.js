@@ -30,36 +30,22 @@ let angleSliderVal = 0;
 
 
 let renderer, scene, camera, controls;
-let currentMeshes = [];
-let uploadedFile = null;
 let raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-let edge_hover = null;  // holds the current edge being hovered over
-let centerPoint_hover = null; // holds the center point of the current edge being hovered over
 let visualInputJointId = null; // Global parameter to track the currently selected joint for visual input
 let torusHover = null;
 let jointArray = [];
-/*
-jointArray.push({
-    jointNumber: 1, // Number
-    jointLocation: new THREE.Vector3(0, 0, 0), // THREE.Vector3
-    jointVector: new THREE.Vector3(1, 0, 0), // THREE.Vector3
-    jointType: "Flanged", // String
-    ArrowObj: new THREE.ArrowHelper(), // THREE.ArrowHelper
-    SphereObj: new THREE.Mesh(), // THREE.Mesh
-    EdgeObj: new THREE.Line() // THREE.Line
-});
-*/
+let selectedCircularEdge = null;
 
-const stats = new Stats()
+// Uncomment Two Lines Below for FPS Data
+//const stats = new Stats()
 //document.body.appendChild(stats.dom)
+
 ///// MAIN BODY ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 document.addEventListener('DOMContentLoaded', () => {
     init();
     animate();
     updateGrid();
-
-    
 
     function init() {
         // Scene and Camera Setup
@@ -84,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
         controls = new OrbitControls(camera, renderer.domElement);
         controls.target.set(0, 0, 0);
         controls.update();
-
         
         let elementsArray = document.querySelectorAll("whatever");
         elementsArray.forEach(function(elem) {
@@ -92,13 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // This function does stuff
             });
         });
-
         animate();
-
-        
-
-
-
     }
 
     // LISTENERS
@@ -125,69 +104,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-
-
 ///// USER INPUT HANDLING ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// --- Mouse Move & Click Handlers ---
+// Called on every pointer move (if edge selection mode is active)
 function handleMouseMove(event) {
-    let map = document.getElementById('threejsDisplay');
-    let mapDimensions = map.getBoundingClientRect();
+    const map = document.getElementById('threejsDisplay');
+    const mapDimensions = map.getBoundingClientRect();
     pointer.x = ((event.clientX - mapDimensions.left) / mapDimensions.width) * 2 - 1;
-    pointer.y = - ((event.clientY - mapDimensions.top) / mapDimensions.height) * 2 + 1;
-
-    raycaster.setFromCamera( pointer, camera );
+    pointer.y = -((event.clientY - mapDimensions.top) / mapDimensions.height) * 2 + 1;
+    
+    raycaster.setFromCamera(pointer, camera);
     edgeSelection();
 }
+
 function handleMouseClick() {
-    const intersects = raycaster.intersectObjects(scene.children, true); // get any interesected objects
-    if (intersects.length > 0) { // if an object was intersected while clicking occurred
-        const intersectedObject = intersects[0].object; // only looking at one intersected object at a time
-        handleJointClick(intersects);      // take action if the selected object is a joint
-     
+    const intersects = raycaster.intersectObjects(scene.children, true);
+    if (intersects.length > 0) {
+        handleJointClick(intersects);
     }
 }
 
+// --- Visual Input Mode Toggle ---
 function toggleVisualInputMode(jointId) {
     const newButton = document.getElementById(`selectLocation${jointId}`);
-    // If another button is already selected, reset it to its original state
+    // Reset previously selected button if different.
     if (visualInputJointId !== null && visualInputJointId !== jointId) {
         const previousButton = document.getElementById(`selectLocation${visualInputJointId}`);
-        previousButton.classList.remove('btn-danger');
-        previousButton.classList.add('btn-success');
-        previousButton.textContent = 'Select Location';
+        previousButton.classList.replace('btn-danger', 'btn-success');
+        previousButton.textContent = 'Select Edge';
     }
 
-    if (visualInputJointId === jointId) { // if the same button is called again, change it back to green / success status
+    if (visualInputJointId === jointId) {
+        // Unselect the current joint.
         visualInputJointId = null;
-        newButton.classList.remove('btn-danger');
-        newButton.classList.add('btn-success');
-        newButton.textContent = 'Select Location';
-        visualInputJointId = null; // visual button id to null (none selected)
-        toggleEdgesVisibility(false); // Hide edges
-    } else { // if button is clicked for the first time, change state
+        newButton.classList.replace('btn-danger', 'btn-success');
+        newButton.textContent = 'Select Edge';
+        toggleEdgesVisibility(false); // Hide edges.
+    } else {
         visualInputJointId = jointId;
-        newButton.classList.remove('btn-success');
-        newButton.classList.add('btn-danger');
+        newButton.classList.replace('btn-success', 'btn-danger');
         newButton.textContent = 'Cancel';
-        toggleEdgesVisibility(true); // Show edges
+        toggleEdgesVisibility(true); // Show edges.
     }
 }
 
+// When edge selection mode is toggled on/off,
+// ensure that only circular edges are enabled for raycasting, but keep them hidden until hovered over.
 function toggleEdgesVisibility(visible) { 
-    // turn on/off if the edges are visible and raycast (helps performance)
-    scene.traverse(function (child) {
-        if (child.name === "edge") {
-            child.visible = visible;
-            if (visible) {
-                child.raycast = THREE.Line.prototype.raycast;
-            } else {
-                child.raycast = () => {};
-            }
+    // When toggling, we enable raycasting if 'visible' is true,
+    // but always keep these edges hidden until hovered.
+    scene.traverse(child => {
+        if (child.name === "edge" || child.name === "CircularEdges") {
+            child.visible = false;  // Always hide by default.
+            child.raycast = visible ? THREE.Line.prototype.raycast : () => {};
         }
     });
 }
 
 
 
+// When an edge is clicked, use its stored data so that its highlight persists.
 function handleJointClick(intersects) {
     const intersectedObject = intersects[0].object;
     const objectName = intersectedObject.name;
@@ -195,75 +171,95 @@ function handleJointClick(intersects) {
     if (visualInputJointId !== null) {
         const jointNumber = visualInputJointId;
         const jointIndex = jointArray.findIndex(joint => joint.jointNumber === jointNumber);
+        if (jointIndex === -1) return;
+        const joint = jointArray[jointIndex];
 
-        if (jointIndex > -1) {
-            const joint = jointArray[jointIndex];
+        // Remove any existing visual objects for this joint.
+        [joint.ArrowObj, joint.SphereObj, joint.CircleObj].forEach(obj => {
+            if (obj) {
+                scene.remove(obj);
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) obj.material.dispose();
+            }
+        });
+        
+        // Process only if a circular edge was clicked.
+        if (objectName === "CircularEdges") {
+            // Mark this edge as selected so it remains highlighted.
+            selectedCircularEdge = intersectedObject;
+            const center = intersectedObject.position.clone();
 
-            // Remove existing objects if they exist
-            if (joint.ArrowObj) {
-                scene.remove(joint.ArrowObj);
-                if (joint.ArrowObj.geometry) joint.ArrowObj.geometry.dispose();
-                if (joint.ArrowObj.material) joint.ArrowObj.material.dispose();
-            }
-            if (joint.SphereObj) {
-                scene.remove(joint.SphereObj);
-                if (joint.SphereObj.geometry) joint.SphereObj.geometry.dispose();
-                if (joint.SphereObj.material) joint.SphereObj.material.dispose();
-            }
-            if (joint.CircleObj) {
-                scene.remove(joint.CircleObj);
-                if (joint.CircleObj.geometry) joint.CircleObj.geometry.dispose();
-                if (joint.CircleObj.material) joint.CircleObj.material.dispose();
-            }
-            if (centerPoint_hover) {
-                const permanentSphere = new THREE.Mesh(new THREE.SphereGeometry(2, 32, 32), pointMaterial);
-                permanentSphere.position.copy(centerPoint_hover.position);
-                permanentSphere.name = 'centerPoint';
-                permanentSphere.userData.id = jointNumber;
-                permanentSphere.userData.isSelected = true;
-                scene.add(permanentSphere);
-                const [normalVect, radius] = computeJointNormal(permanentSphere.position, edge_hover[0]);
-                const arrowHelper = new THREE.ArrowHelper(normalVect, permanentSphere.position, 80, 0x00c062, 25, 20);
-                arrowHelper.raycast = function() {};
-                scene.add(arrowHelper);
-                const circleGeometry = new THREE.TorusGeometry(radius, radius*.03, 64, 64);
-                const circleMaterial = highlightLineMaterial;
-                const circle = new THREE.Mesh(circleGeometry, circleMaterial);
-                const quaternion = new THREE.Quaternion();
-                quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normalVect);
-                circle.applyQuaternion(quaternion);
-                circle.position.set(permanentSphere.position.x, permanentSphere.position.y, permanentSphere.position.z);
-                scene.add(circle);
-                // Update form values using getElementById
-                const xInput = document.getElementById(`xInput${jointNumber}`);
-                const yInput = document.getElementById(`yInput${jointNumber}`);
-                const zInput = document.getElementById(`zInput${jointNumber}`);
-                const nxInput = document.getElementById(`nxInput${jointNumber}`);
-                const nyInput = document.getElementById(`nyInput${jointNumber}`);
-                const nzInput = document.getElementById(`nzInput${jointNumber}`);
-                if (xInput && yInput && zInput && nxInput && nyInput && nzInput) {
-                    xInput.value = permanentSphere.position.x.toFixed(3);
-                    yInput.value = permanentSphere.position.y.toFixed(3);
-                    zInput.value = permanentSphere.position.z.toFixed(3);
-                    nxInput.value = normalVect.x.toFixed(3);
-                    nyInput.value = normalVect.y.toFixed(3);
-                    nzInput.value = normalVect.z.toFixed(3);
-                } else {
-                    console.error('Form input elements not found');
-                }
-                // Update jointArray with selected joint data
-                joint.jointLocation = permanentSphere.position.clone();
-                joint.jointVector = normalVect.clone();
-                joint.ArrowObj = arrowHelper;
-                joint.SphereObj = permanentSphere;
-                joint.CircleObj = circle;
+            // Create a permanent sphere at the center.
+            const permanentSphere = new THREE.Mesh(
+                new THREE.SphereGeometry(2, 32, 32),
+                pointMaterial
+            );
+            permanentSphere.position.copy(center);
+            permanentSphere.name = 'centerPoint';
+            permanentSphere.userData = { id: jointNumber, isSelected: true };
+            scene.add(permanentSphere);
 
-                // Reset the toggle button
-                toggleVisualInputMode(jointNumber);
+            // Extract axis and radius from userData.
+            const { x: axis_x, y: axis_y, z: axis_z } = intersectedObject.userData.axis;
+            const radius = intersectedObject.userData.radius;
+            const normalVect = new THREE.Vector3(axis_x, axis_y, axis_z).normalize();
+
+            // Create an arrow helper using the normal vector.
+            const arrowHelper = new THREE.ArrowHelper(
+                normalVect,
+                permanentSphere.position,
+                80,
+                0x00c062,
+                25,
+                20
+            );
+            arrowHelper.raycast = () => {};
+            scene.add(arrowHelper);
+
+            // Create a torus (circle) using the radius and orient it with the normal.
+            const circleGeometry = new THREE.TorusGeometry(radius, radius * 0.03, 64, 64);
+            const circle = new THREE.Mesh(circleGeometry, highlightLineMaterial);
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(
+                new THREE.Vector3(0, 0, 1),
+                normalVect
+            );
+            circle.applyQuaternion(quaternion);
+            circle.position.copy(permanentSphere.position);
+            scene.add(circle);
+
+            // Update form fields.
+            const xInput = document.getElementById(`xInput${jointNumber}`);
+            const yInput = document.getElementById(`yInput${jointNumber}`);
+            const zInput = document.getElementById(`zInput${jointNumber}`);
+            const nxInput = document.getElementById(`nxInput${jointNumber}`);
+            const nyInput = document.getElementById(`nyInput${jointNumber}`);
+            const nzInput = document.getElementById(`nzInput${jointNumber}`);
+            if (xInput && yInput && zInput && nxInput && nyInput && nzInput) {
+                xInput.value = permanentSphere.position.x.toFixed(3);
+                yInput.value = permanentSphere.position.y.toFixed(3);
+                zInput.value = permanentSphere.position.z.toFixed(3);
+                nxInput.value = normalVect.x.toFixed(3);
+                nyInput.value = normalVect.y.toFixed(3);
+                nzInput.value = normalVect.z.toFixed(3);
+            } else {
+                console.error('Form input elements not found');
             }
+
+            // Update joint data.
+            joint.jointLocation = permanentSphere.position.clone();
+            joint.jointVector = normalVect.clone();
+            joint.ArrowObj = arrowHelper;
+            joint.SphereObj = permanentSphere;
+            joint.CircleObj = circle;
+
+            // Reset visual input toggle.
+            toggleVisualInputMode(jointNumber);
         }
     }
 }
+
+
+
 
 
 
@@ -296,21 +292,29 @@ async function addJoint(x = "-", y = "-", z = "-") {
     jointContainer.id = `joint${jointNumber}`;
 
     jointContainer.innerHTML = `
-        <small class="font-weight-bold" style="position: absolute; top: -10px; left: 10px; background: black; padding: 0 5px;">JOINT ${jointNumber}</small>
+    <small class="font-weight-bold" style="position: absolute; top: -10px; left: 10px; background: black; padding: 0 5px;">
+        JOINT ${jointNumber}
+    </small>
+    <div class="form-group mb-2 d-flex align-items-center">
+        <select class="form-control form-control-sm flex-grow-1" id="jointType${jointNumber}" name="jointType${jointNumber}" style="appearance: none;">
+            <option value="" disabled selected>-Joint Type-</option>
+            <option value="hole">Simple Hole</option>
+            <option value="Flanged">Flanged</option>
+            <option value="1/4">1/4 Bulkhead, AS1099</option>
+            <option value="1/2">1/2 Bulkhead, AS1099</option>
+            <option value="1">1 Bulkhead, AS1099</option>
+            <option value="midspan">MidSpan Support</option>
+            <option value="weldHead">Weld Head</option>
+        </select>
+        <button type="button" id="selectLocation${jointNumber}" class="btn btn-success btn-sm" style="width: 19em; margin-left: 0.5em;">
+            Select Edge
+        </button>
+        <button type="button" id="reverseNormal${jointNumber}" class="btn btn-light btn-sm" style="background-color: transparent; color: #00c062; margin-left: 0.5em; box-sizing: border-box;">
+            <i class="fa-solid fa-arrows-up-down"></i>
+        </button>
+    </div>
+    <div id="jointDetails${jointNumber}">
         <div class="form-group mb-2 d-flex align-items-center">
-            <select class="form-control form-control-sm flex-grow-1" id="jointType${jointNumber}" name="jointType${jointNumber}" style="appearance: none;">
-                <option value="" disabled selected>-Select Joint Type-</option>
-                <option value="Flanged">Flanged</option>
-                <option value="hole">Simple Hole</option>
-                <option value="1/4">Flared 1/4</option>
-                <option value="1/2">Flared 1/2</option>
-                <option value="1">Flared 1</option>
-                <option value="midspan">MidSpan Support</option>
-                <option value="weldHead">Weld Head</option>
-            </select>
-            <button type="button" id="selectLocation${jointNumber}" class="btn btn-success btn-sm" style="width: 19em; margin-left: 0.5em;">Select Location</button>
-        </div>
-        <div class="form-group d-flex align-items-center mb-2">
             <label for="xInput${jointNumber}" class="me-2" style="width: 30em;">Location</label>
             <input type="text" class="form-control form-control-sm me-2" name="xInput${jointNumber}" id="xInput${jointNumber}" placeholder="X">
             <input type="text" class="form-control form-control-sm me-2" name="yInput${jointNumber}" id="yInput${jointNumber}" placeholder="Y">
@@ -322,32 +326,72 @@ async function addJoint(x = "-", y = "-", z = "-") {
             <input type="text" class="form-control form-control-sm me-2" name="nxInput${jointNumber}" id="nxInput${jointNumber}" placeholder="X">
             <input type="text" class="form-control form-control-sm me-2" name="nyInput${jointNumber}" id="nyInput${jointNumber}" placeholder="Y">
             <input type="text" class="form-control form-control-sm me-2" name="nzInput${jointNumber}" id="nzInput${jointNumber}" placeholder="Z">
-            <button type="button" id="reverseNormal${jointNumber}" class="btn btn-light btn-sm" style="background-color: transparent; color: #00c062; width: 25px;  box-sizing: border-box;"><i class="fa-solid fa-arrows-up-down"></i></button>
         </div>
-        <div id="additionalInputs${jointNumber}"></div>
+        <div class="d-flex justify-content-center align-items-center mt-1">
+            <label for="supportWidthSlider${jointNumber}" class="me-2">Stance Multiplier</label>
+            <input type="range" class="form-range" id="supportWidthSlider${jointNumber}" name="supportWidthSlider${jointNumber}" min="50" max="150" step="5" value="100">
+            <input type="text" class="form-control form-control-sm ms-2 small" id="supportWidthValue${jointNumber}" name="supportWidthValue${jointNumber}" value="100" style="width: 60px;">
+            <span class="small ms-2">[%]</span>
+        </div>
+    </div>
+    <div id="additionalInputs${jointNumber}"></div>
     `;
+
 
 
     document.getElementById('jointsContainer').appendChild(jointContainer);
     document.getElementById(`jointType${jointNumber}`).addEventListener('change', function () {
         updateJointType(this, `additionalInputs${jointNumber}`);
     });
-    // Add event listeners for the new input fields
+    // Add event listeners for the new input fields.
     document.querySelectorAll(`#joint${jointNumber} input, #joint${jointNumber} select`).forEach(input => {
         input.addEventListener('input', syncFormandHighlightedObjects);
     });
-
-    // Add event listener for the new toggle button
+    // Add event listener for the toggle button.
     document.getElementById(`selectLocation${jointNumber}`).addEventListener('click', function() {
         toggleVisualInputMode(jointNumber);
     });
-
     document.getElementById(`reverseNormal${jointNumber}`).addEventListener('click', function () {
         reverseJointNormal(jointNumber);
     });
 
+    // Event listener for the slider to constrain values between 20 and 100.
+    const supportSlider = document.getElementById(`supportWidthSlider${jointNumber}`);
+    const supportValue = document.getElementById(`supportWidthValue${jointNumber}`);
+    supportSlider.addEventListener('input', function() {
+        let value = parseInt(this.value);
+        if (value < 50) value = 50;
+        if (value > 150) value = 150;
+        this.value = value;
+        supportValue.value = value;
+    });
+    // Prevent user from entering a value outside the bounds in the text field.
+    supportValue.addEventListener('blur', function() {
+        let value = parseInt(this.value);
+        if (isNaN(value)) value = 100;
+        if (value < 20) value = 20;
+        if (value > 100) value = 100;
+        this.value = value;
+        supportSlider.value = value;
+    });
+    supportValue.addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            let value = parseInt(this.value);
+            if (isNaN(value)) value = 100;
+            if (value < 20) value = 20;
+            if (value > 100) value = 100;
+            this.value = value;
+            supportSlider.value = value;
+        }
+    });
+
     document.getElementById('jointCount').value = jointArray.length;
 }
+
+
+
+
+
 
 
 
@@ -394,39 +438,6 @@ function syncFormandHighlightedObjects() {
         joint.jointType = jointType;
         joint.jointLocation.copy(jointLocation);
         joint.jointVector.copy(jointVector);
-
-        // // Remove existing sphere object if it exists
-        // if (joint.SphereObj) {
-        //     scene.remove(joint.SphereObj);
-        // }
-        // // Create a new sphere object
-        // joint.SphereObj = new THREE.Mesh(new THREE.SphereGeometry(2, 32, 32), new THREE.MeshBasicMaterial({ color: 0x00c062 }));
-        // joint.SphereObj.position.copy(jointLocation);
-        // scene.add(joint.SphereObj);
-
-        // // Remove existing arrow object if it exists
-        // if (joint.ArrowObj) {
-        //     scene.remove(joint.ArrowObj);
-        // }
-        // // Create a new arrow object
-        // joint.ArrowObj = new THREE.ArrowHelper(jointVector, jointLocation, 50, 0x00c062, 10, 5);
-        // scene.add(joint.ArrowObj);
-
-        // // Remove existing arrow object if it exists
-        // if (joint.CircleObj) {
-        //     scene.remove(joint.ArrowObj);
-        // }
-
-        // const radius = 10;
-        // const circleGeometry = new THREE.TorusGeometry(radius, radius*.035, 64, 64);
-        // const circle = new THREE.Mesh(circleGeometry, highlightLineMaterial);
-        // const quaternion = new THREE.Quaternion();
-        // quaternion.setFromUnitVectors(joint.jointVector.normalize(), jointVector.normalize());
-        // circle.applyQuaternion(quaternion);
-        // circle.position.set(jointLocation);
-        // scene.add(circle);
-
-
     });
 }
 
@@ -443,122 +454,30 @@ function syncFormandHighlightedObjects() {
 
 
 
-
-
-
-
-
-
-
-function computeJointNormal(centerPoint, edge){
-    // We know the center point and the outer ring of segments that makes up the edge. We can find the normal vector
-    // centerPoint: xyz of the joint center
-    // edge: an edge (line object) from the list of segments that make up the edge. This edge should be on the same plane as the center!
-    
-    // Extract Start and End Coordinates of Edge
-    const positions = edge.geometry.attributes.position.array;
-    const startPoint = new THREE.Vector3(positions[0], positions[1], positions[2]);
-    const endPoint = new THREE.Vector3(positions[3], positions[4], positions[5]);
-    // Calculate the vector v from startPoint to endPoint
-    const v = new THREE.Vector3();
-    v.subVectors(endPoint, startPoint);
-    // Calculate the midpoint of the edge
-    const midPoint = new THREE.Vector3();
-    midPoint.addVectors(startPoint, endPoint).multiplyScalar(0.5);
-    // Calculate the vector d from the center to the midpoint
-    const d = new THREE.Vector3();
-    d.subVectors(midPoint, centerPoint);
-    // Compute the normal vector by taking the cross product of d and v
-    const n = new THREE.Vector3();
-    n.crossVectors(d, v);
-    n.normalize(); // Normalize the normal vector
-    const radius = d.length();
-    return [n, radius]; // Return the computed normal vector
-}
-
-
-function edgeSelection() {
-    const edges = scene.children.filter(child => child.name === "edge"); // filtering to get all edge elements from scene
-    const intersects = raycaster.intersectObjects(edges, true);  // get all the edges that the mouse intersects with
-    if (intersects.length > 0) {  // Does the mouse intersect with an edge
-        const edge_now = intersects[0].object; // only taking the first edge in the list
-        const circleEdgeGroup = groupCircularEdges(edge_now, edges); //looking for edges that form a loop. Returns false if not a circular loop
-
-        if (circleEdgeGroup) {   // starting loop only if a circle edge group was identified
-            // Reset color of all previouslyly highlighted edges 
-            if (edge_hover){ 
-                edge_hover.forEach(edge => edge.material = transparentLineMaterial);
-                edge_hover = null;
-            }
-            // Highlight New Edges
-            edge_hover = circleEdgeGroup;  // update the current selected edge group to be the highlighted group. Not this updates the reference, it does not copy objects
-            edge_hover.forEach(edge => edge.material = highlightLineMaterial); // highlight the group
-            
-            // Get the Bounding Sphere and Location of the Joint.
-            let combinedPositions = [];
-            circleEdgeGroup.forEach(edge => {
-                const positions = edge.geometry.attributes.position.array;
-                combinedPositions = combinedPositions.concat(Array.from(positions));
-            });
-            const combinedGeometry = new THREE.BufferGeometry();
-            combinedGeometry.setAttribute('position', new THREE.Float32BufferAttribute(combinedPositions, 3));
-            combinedGeometry.computeBoundingSphere();
-            const center = combinedGeometry.boundingSphere.center;
-            const pointGeometry = new THREE.SphereGeometry(1, 32, 32);
-            
-            // Draw a Sphere at Center of Bounding Sphere
-            if (centerPoint_hover){ // remove existing center point hover if exists
-                scene.remove(centerPoint_hover);
-            }
-            centerPoint_hover = new THREE.Mesh(pointGeometry, pointMaterial_highlight);
-            centerPoint_hover.position.copy(center); 
-            scene.add(centerPoint_hover);
-
-
-
-            if (torusHover){
-                scene.remove(torusHover);
-            }
-            // Testing a torus geometry instead of just hghlighting the edges
-            const permanentSphere = new THREE.Mesh(new THREE.SphereGeometry(2, 32, 32), pointMaterial);
-            permanentSphere.position.copy(centerPoint_hover.position);
-            permanentSphere.name = 'centerPoint';
-            permanentSphere.userData.id = jointNumber;
-            permanentSphere.userData.isSelected = true;
-            const [normalVect, radius] = computeJointNormal(permanentSphere.position, edge_hover[0]);
-            const circleGeometry = new THREE.TorusGeometry(radius, radius*.04, 64, 64);
-            const circleMaterial = highlightLineMaterial;
-            torusHover = new THREE.Mesh(circleGeometry, circleMaterial);
-            const quaternion = new THREE.Quaternion();
-            quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normalVect);
-            torusHover.applyQuaternion(quaternion);
-            torusHover.position.set(permanentSphere.position.x, permanentSphere.position.y, permanentSphere.position.z);
-            scene.add(torusHover);
-
-
-        }  
-    } else { // remove highlighted edge and center point if they exist
-        if (edge_hover){
-            edge_hover.forEach(edge => edge.material = transparentLineMaterial);
-            edge_hover = null;
-        }
-        if (centerPoint_hover){
-            scene.remove(centerPoint_hover);
-            centerPoint_hover = null;
-        }
-        if (torusHover){
-            scene.remove(torusHover);
-        }
-    }
-}
-
-
-
-
-
-
-
 ///// THREEJS HELPERS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+function handleGridSpacingChange(event) {
+    gridSpacing = parseInt(event.target.value);
+    updateGrid();
+}
+
+function updateGrid() {
+    const existingGrid = scene.getObjectByName('gridHelper');
+    if (existingGrid) {
+        scene.remove(existingGrid);
+    }
+    const numDivisions = gridEdgeLength / gridSpacing;
+    const grid = new THREE.GridHelper(gridEdgeLength, numDivisions);
+    grid.rotation.x = Math.PI / 2;
+    grid.name = 'gridHelper';
+    scene.add(grid);
+    // drawing arrows too
+    scene.add(new THREE.AxesHelper(60));
+    scene.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 60, 0xFF0000, 10, 5));
+    scene.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 60, 0x008000, 10, 5));
+    scene.add(new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), 60, 0x0000FF, 10, 5));
+}
+
+
 function clearScene() {
     while (scene.children.length > 0) {
         const child = scene.children[0];
@@ -600,62 +519,35 @@ function animate() {
     //stats.update();
 }
 
-// Find and Return Groups of Edges that form a Circle
-// For an input edge, loop through all other edges and form a group of adjacent edges
-function groupCircularEdges(hoveredEdge, edges) {
-    let edgeGroup = [hoveredEdge];
-    let currentEdge = hoveredEdge;
-    let remainingEdges = edges.slice();
-    for (let i = 0; i < remainingEdges.length; i++) {
-        let edgeCandidate = remainingEdges[i];
-        if (areEdgesColinear(currentEdge, edgeCandidate) && areVerticesCoincident(currentEdge, edgeCandidate)) {
-            edgeGroup.push(edgeCandidate);
-            currentEdge = edgeCandidate;
-            remainingEdges.splice(i, 1);
-            i = 0;
+
+
+// Called on pointer move when edge selection mode is active.
+function edgeSelection() {
+    if (!visualInputJointId) return;
+
+    const circularEdges = scene.children.filter(child => child.name === "CircularEdges");
+    const intersects = raycaster.intersectObjects(circularEdges, true);
+
+    // Reset all circular edges: hide and set default (transparent) material.
+    circularEdges.forEach(edge => {
+        if (edge !== selectedCircularEdge) {
+            edge.material = transparentLineMaterial;
+            edge.visible = false;
         }
+    });
+
+    if (intersects.length > 0) {
+        const hoveredEdge = intersects[0].object;
+        if (selectedCircularEdge && selectedCircularEdge !== hoveredEdge) {
+            selectedCircularEdge = null;
+        }
+        hoveredEdge.visible = true;
+        hoveredEdge.material = highlightLineMaterial;
+    } else if (selectedCircularEdge) {
+        selectedCircularEdge.visible = true;
+        selectedCircularEdge.material = highlightLineMaterial;
     }
-    const firstLastCoincident = areVerticesCoincident(edgeGroup[0], edgeGroup[edgeGroup.length - 1]);  // Are the first and last edges coincident (must be true for a circle)
-    const loopLength = edgeGroup.length; // get the length of the loop
-    const minLength = 4; // edges threshold
-    // if firstLastCoincident==true, return edgegroup. Otherwise return the false
-    if (firstLastCoincident && loopLength>=minLength){
-        return edgeGroup;
-    } else {
-        return false;
-    }
 }
-
-function areEdgesColinear(edge1, edge2, angleTol = 30) {
-    const direction1 = new THREE.Vector3().subVectors(
-        new THREE.Vector3(edge1.geometry.attributes.position.getX(1), edge1.geometry.attributes.position.getY(1), edge1.geometry.attributes.position.getZ(1)),
-        new THREE.Vector3(edge1.geometry.attributes.position.getX(0), edge1.geometry.attributes.position.getY(0), edge1.geometry.attributes.position.getZ(0))
-    ).normalize();
-    const direction2 = new THREE.Vector3().subVectors(
-        new THREE.Vector3(edge2.geometry.attributes.position.getX(1), edge2.geometry.attributes.position.getY(1), edge2.geometry.attributes.position.getZ(1)),
-        new THREE.Vector3(edge2.geometry.attributes.position.getX(0), edge2.geometry.attributes.position.getY(0), edge2.geometry.attributes.position.getZ(0))
-    ).normalize();
-    const dotProduct = direction1.dot(direction2);
-    const angle = Math.acos(dotProduct) * (180 / Math.PI);
-    return angle <= angleTol;
-}
-
-function areVerticesCoincident(edge1, edge2, tolerance = 0.0001) { // checks if two line segments share a vertex
-    const pos1 = edge1.geometry.attributes.position;
-    const pos2 = edge2.geometry.attributes.position;
-    const edge1Start = new THREE.Vector3(pos1.getX(0), pos1.getY(0), pos1.getZ(0));
-    const edge1End = new THREE.Vector3(pos1.getX(1), pos1.getY(1), pos1.getZ(1));
-    const edge2Start = new THREE.Vector3(pos2.getX(0), pos2.getY(0), pos2.getZ(0));
-    const edge2End = new THREE.Vector3(pos2.getX(1), pos2.getY(1), pos2.getZ(1));
-    const toleranceSquared = tolerance * tolerance;
-    return edge1Start.distanceToSquared(edge2Start) <= toleranceSquared ||
-        edge1Start.distanceToSquared(edge2End) <= toleranceSquared ||
-        edge1End.distanceToSquared(edge2Start) <= toleranceSquared ||
-        edge1End.distanceToSquared(edge2End) <= toleranceSquared;
-}
-
-
-
 
 
 
@@ -666,7 +558,7 @@ function areVerticesCoincident(edge1, edge2, tolerance = 0.0001) { // checks if 
 ///// FILE UPLOADS/PROCESSING ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function handleFileUpload(event) {
     document.getElementById('loadingMessage').style.display = 'block';
-    uploadedFile = event.target.files[0];
+    const uploadedFile = event.target.files[0];
     const formData = new FormData();
     formData.append('file', uploadedFile);
 
@@ -674,21 +566,92 @@ function handleFileUpload(event) {
         method: 'POST',
         body: formData
     })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert(data.error);
-                document.getElementById('loadingMessage').style.display = 'none';
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            console.log("STL Path: ", data.stl_path);
+            
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 5, 5).normalize();
+            scene.add(directionalLight);
+
+            // Load the STL file
+            if (data.stl_path) {
+                loadSTL(data.stl_path, materialTube, true, { type: 'fileUpload' }, () => {
+                    console.log("File loaded.");
+                    document.getElementById('loadingMessage').style.display = 'none';
+                });
             } else {
-                loadFileUpload(uploadedFile);
+                document.getElementById('loadingMessage').style.display = 'none';
             }
-        })
-        .catch(error => {
-            document.getElementById('loadingMessage').style.display = 'none';
-            console.error('Error:', error);
-            alert('An error occurred while uploading the file. Check File size / type- only .stl files under 50mb are allowed.');
-        });
+            
+            // Process and display circular edge centers as white points
+            if (data.edges && data.edges.length > 0) {
+                processCircularEdges(data.edges);
+            }
+        }
+        document.getElementById('loadingMessage').style.display = 'none';
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while uploading the file.');
+        document.getElementById('loadingMessage').style.display = 'none';
+    });
 }
+
+function processCircularEdges(edges) {
+    // This function receives an array of edge data in the format:
+    // [center_x, center_y, center_z, axis_x, axis_y, axis_z, radius]
+    
+    edges.forEach(edgeData => {
+        const [x, y, z, axis_x, axis_y, axis_z, radius] = edgeData;
+        
+        // Create a torus using the radius; tube radius is 5% of the main radius.
+        const tubeRadius = 2;
+        const torusGeometry = new THREE.TorusGeometry(radius, tubeRadius, 16, 100);
+        const torusMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const torus = new THREE.Mesh(torusGeometry, torusMaterial);
+        
+        // Set the name for selection purposes.
+        torus.name = "CircularEdges";
+        
+        // Store the circular edge data for later use.
+        torus.userData = {
+            center: { x: x, y: y, z: z },
+            axis: { x: axis_x, y: axis_y, z: axis_z },
+            radius: radius
+        };
+
+        // Orient the torus so its normal aligns with the provided axis.
+        const defaultNormal = new THREE.Vector3(0, 0, 1);
+        const targetNormal = new THREE.Vector3(axis_x, axis_y, axis_z).normalize();
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(defaultNormal, targetNormal);
+        torus.quaternion.copy(quaternion);
+        
+        // Position the torus at the center.
+        torus.position.set(x, y, z);
+        
+        // Ensure the torus is hidden initially.
+        torus.visible = false;
+        
+        scene.add(torus);
+    });
+}
+
+
+
+
+
+
+
+
+
+
 
 function handleFormSubmit(event) {
     event.preventDefault();
@@ -706,56 +669,11 @@ function handleFormSubmit(event) {
     toolingObjects.forEach(function (object) {
         scene.remove(object);
     });
-
-    
     // load new tooling
     loadTooling(formData)
 }
 
-function handleGridSpacingChange(event) {
-    gridSpacing = parseInt(event.target.value);
-    updateGrid();
-}
-
-function updateGrid() {
-    const existingGrid = scene.getObjectByName('gridHelper');
-    if (existingGrid) {
-        scene.remove(existingGrid);
-    }
-    const numDivisions = gridEdgeLength / gridSpacing;
-    const grid = new THREE.GridHelper(gridEdgeLength, numDivisions);
-    grid.rotation.x = Math.PI / 2;
-    grid.name = 'gridHelper';
-    scene.add(grid);
-    // drawing arrows too
-    scene.add(new THREE.AxesHelper(60));
-    scene.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 60, 0xFF0000, 10, 5));
-    scene.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 60, 0x008000, 10, 5));
-    scene.add(new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), 60, 0x0000FF, 10, 5));
-}
-
-function loadFileUpload(file) {
-    // Add lighting
-    const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
-    scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(5, 5, 5).normalize();
-    scene.add(directionalLight);
-    if (file) {
-        const loader = new STLLoader();
-        const url = URL.createObjectURL(file);
-        loadSTL(url, materialTube, true, { type: 'fileUpload' }, () => {
-            console.log("File loaded.");
-            // Hide the loading message only after the file has been loaded
-            document.getElementById('loadingMessage').style.display = 'none';
-        });
-    } else {
-        // Hide the loading message if no file is selected
-        document.getElementById('loadingMessage').style.display = 'none';
-    }
-}
-
-
+// Function To Generate Tooling
 function loadTooling(formData) {
     document.getElementById('loadingMessage').style.display = 'block';
     fetch('/process_joints', {
@@ -792,40 +710,15 @@ function loadSTL(url, material, edgesVisible, metadata = {}, onLoadCallback) {
         const mesh = new THREE.Mesh(geometry, material);
         // Attach metadata to the mesh
         mesh.userData = { ...metadata };
-        
         scene.add(mesh);
-        mesh.raycast = function() {}; // don't want these objects to occlude or prevent us from selecting the green joint dots
+        mesh.raycast = function() {}; // Prevent these objects from occluding selections
+        // Hide all edges (non-circular and circular) when finished.
+        toggleEdgesVisibility(false);
         
-        // Drawing individual edges for us to classify later
-        if (edgesVisible) {
-            const thresholdAngle = 15; // An edge is only rendered if the angle (in degrees) between the face normals of the adjoining faces exceeds this value. default = 1 degree.
-            const edges = new THREE.EdgesGeometry(geometry, thresholdAngle);
-
-            const positions = edges.attributes.position.array;
-            var edgeCount = 0; // Counting number of edges
-            for (let i = 0; i < positions.length; i += 6) {
-                const edgeGeometry = new THREE.BufferGeometry();
-                const vertices = new Float32Array([
-                    positions[i], positions[i + 1], positions[i + 2],
-                    positions[i + 3], positions[i + 4], positions[i + 5]
-                ]);
-                edgeGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-                const edgeLine = new THREE.Line(edgeGeometry, transparentLineMaterial.clone());
-                edgeLine.name = "edge";
-                // Attach metadata to the edgeLine
-                edgeLine.userData = { ...metadata };
-                edgeCount++;
-                edgeLine.raycast = () => {};
-                scene.add(edgeLine);
-            }
-            console.log(edgeCount); // useful performance parameter
-        }
-        toggleEdgesVisibility(false); // turn off all edges for now
-        
-
         if (onLoadCallback) onLoadCallback();
     });
 }
+
 
 
 
@@ -962,12 +855,12 @@ document.querySelector('button#generateToolingButton').addEventListener('click',
 });
 
 
-function updateJointType(selectElement, additionalInputsId) {
-    const additionalInputs = document.getElementById(additionalInputsId);
-    additionalInputs.innerHTML = '';
+function updateJointType(selectElement, containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
 
     if (selectElement.value === 'Flanged') {
-        additionalInputs.innerHTML = `
+        container.innerHTML = `
             <div class="form-group d-flex align-items-center mb-2 mt-2">
                 <label for="boltCircleDiameter${jointArray.length}" class="me-2" style="width: 40em;">Bolt Circle Diameter</label>
                 <input type="text" class="form-control form-control-sm" name="boltCircleDiameter${jointArray.length}" placeholder="-">
@@ -990,29 +883,29 @@ function updateJointType(selectElement, additionalInputsId) {
             </div>
         `;
     } else if (selectElement.value === 'midspan') {
-        additionalInputs.innerHTML = `
+        container.innerHTML = `
             <div class="form-group d-flex align-items-center mb-2 mt-2">
                 <label for="diameter${jointArray.length}" class="me-2" style="width: 20em;">Diameter</label>
                 <input type="text" class="form-control form-control-sm" name="diameter${jointArray.length}" placeholder="-">
-                <span class="small ms-2"">[mm]</span>
+                <span class="small ms-2">[mm]</span>
             </div>
             <div class="form-group d-flex align-items-center mb-2 mt-2">
                 <label for="offset${jointArray.length}" class="me-2" style="width: 20em;">Offset</label>
                 <input type="text" class="form-control form-control-sm" name="offset${jointArray.length}" placeholder="-">
-                <span class="small ms-2"">[mm]</span>
+                <span class="small ms-2">[mm]</span>
             </div>
         `;
     } else if (selectElement.value === 'hole') {
-        additionalInputs.innerHTML = `
+        container.innerHTML = `
             <div class="form-group d-flex align-items-center mb-2 mt-2">
                 <label for="diameter${jointArray.length}" class="me-2" style="width: 20em;">Diameter</label>
                 <input type="text" class="form-control form-control-sm" name="diameter${jointArray.length}" placeholder="-">
-                <span class="small ms-2"">[mm]</span>
+                <span class="small ms-2">[mm]</span>
             </div>
-            
         `;
     }
 }
+
 
 
 // Weld Interference Checks

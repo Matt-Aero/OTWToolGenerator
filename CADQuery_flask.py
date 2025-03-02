@@ -10,14 +10,16 @@ class Joint:
         self.normal_vector = np.array(normal_vector)
 
 class flaredJoint(Joint):
-    def __init__(self, location, normal_vector, flareSize):
+    def __init__(self, location, normal_vector, supportWidth, flareSize):
         super().__init__(location, normal_vector)
+        self.supportWidth = supportWidth
         self.flareSize = flareSize
         self.type = "flared"
 
 class flangeJoint(Joint):
-    def __init__(self, location, normal_vector, boltCircleDiameter, numBolts, boltHoleSize, clockingOffset):
+    def __init__(self, location, normal_vector, supportWidth, boltCircleDiameter, numBolts, boltHoleSize, clockingOffset):
         super().__init__(location, normal_vector)
+        self.supportWidth = supportWidth
         self.boltCircleDiameter = boltCircleDiameter
         self.numBolts = numBolts
         self.boltHoleSize = boltHoleSize
@@ -25,15 +27,17 @@ class flangeJoint(Joint):
         self.type = "flanged"
 
 class midspanJoint(Joint):
-    def __init__(self, location, normal_vector, diameter, offset):
+    def __init__(self, location, normal_vector, supportWidth, diameter, offset):
         super().__init__(location, normal_vector)
+        self.supportWidth = supportWidth
         self.diameter = diameter
         self.type = "midspan"
         self.offset = offset
 
 class holeJoint(Joint):
-    def __init__(self, location, normal_vector, diameter):
+    def __init__(self, location, normal_vector, supportWidth, diameter):
         super().__init__(location, normal_vector)
+        self.supportWidth = supportWidth
         self.diameter = diameter
         self.type = "hole"
 
@@ -240,7 +244,7 @@ def generateSupports(joints, export_dir, tolerance, plateThk):
             sideWorkPlane = cq.Workplane(sidePlane) # Create a workplane using the defined Plane
         
             sideSupportHeightMax = (tabHeight / 2)*math.sqrt(joint_normal_vector[0]**2+joint_normal_vector[1]**2) + 2.25*plateThk # scaling by the magnitude of the x/y components. Makes the plate more efficient
-            sideSupportWidthMax = (tabHeight / 2)*math.sqrt(joint_normal_vector[2]**2) + 2.25*plateThk # scaling by the magnitude of the x/y components. Makes the plate more efficient
+            sideSupportWidthMax = joints[i].supportWidth/100*((tabHeight / 1.75)*math.sqrt(joint_normal_vector[2]**2) + 2.25*plateThk) # scaling by the magnitude of the x/y components. Makes the plate more efficient
             
             sideSupport = (
                 sideWorkPlane

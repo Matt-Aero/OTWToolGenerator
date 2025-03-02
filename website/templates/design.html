@@ -14,8 +14,8 @@
     <div class="left-panel">
         <div class="mb-1">
             <form>
-                <label for="fileUpload" class="small form-label font-weight">Upload tube Assembly (.stl, 50mb max):</label>
-                <input class="form-control form-control-sm" id="fileUpload" type="file" accept=".stl">
+                <label for="fileUpload" class="small form-label font-weight">Upload tube Assembly (.step, 100mb max):</label>
+                <input class="form-control form-control-sm" id="fileUpload" type="file" accept=".step">
             </form>
         </div>
         <form id="jointsForm" method="post" action="{{ url_for('views.process_joints') }}" class="small">

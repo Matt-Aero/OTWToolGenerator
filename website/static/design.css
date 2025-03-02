@@ -16,6 +16,18 @@
     transition: background-color 0.3s, border-color 0.3s;
 }
 
+.chip-button {
+    background-color: #000000;
+    color: white;
+    border: none;
+    border-radius: 2px;
+    padding: 5px 10px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: background-color 0.3s ease;
+  }
+
 
 body { 
     margin: 0px;

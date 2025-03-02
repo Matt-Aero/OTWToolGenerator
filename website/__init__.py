@@ -25,7 +25,7 @@ def create_app():
     app.secret_key = env.get("APP_SECRET_KEY")
     app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
     app.config['GENERATED_FOLDER'] = tempfile.gettempdir()
-    app.config['MAX_CONTENT_LENGTH'] = 50 * 1000 * 1000  # max file size of 5mb
+    app.config['MAX_CONTENT_LENGTH'] = 100 * 1000 * 1000  # max file size of 100mb
 
     from .views import views
     from .auth import auth
