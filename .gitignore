@@ -1,2 +1,37 @@
-env/
-.env
+# Ignore Virtual Environment
+myenv/
+
+# Ignore Python Bytecode & Compiled Files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore Package Dependencies
+*.egg-info/
+*.whl
+
+# Ignore Logs & Temp Files
+*.log
+*.tmp
+*.swp
+
+# Ignore System Files (Windows/Mac)
+.DS_Store
+Thumbs.db
+
+# Ignore Large Binary Files (Executables & Shared Libraries)
+*.exe
+*.dll
+*.so
+*.a
+*.o
+
+# Ignore IDE/Editor Configuration Files
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Ignore Build & Distribution Directories
+dist/
+build/
