@@ -17,8 +17,9 @@ const materialTube = new THREE.MeshMatcapMaterial({
     flatShading: false // Enable flat shading if needed
 });
 const materialTool = new THREE.MeshMatcapMaterial({ color: 0xB0B0B0, matcap: matcapTexture });
-const transparentLineMaterial = new THREE.LineBasicMaterial({ color: 0xFF8600, transparent: false, opacity: 1, side: THREE.DoubleSide });
+const transparentLineMaterial = new THREE.LineBasicMaterial({ color: 0xFF8600, transparent: true, opacity: 1, side: THREE.DoubleSide });
 const highlightLineMaterial = new THREE.LineBasicMaterial({ color: 0x00c062, transparent: false, opacity: 1, side: THREE.DoubleSide });
+const highlightMeshMaterial = new THREE.MeshBasicMaterial({ color: 0x00c062, transparent: false, opacity: 1, side: THREE.DoubleSide });
 const pointMaterial = new THREE.MeshBasicMaterial({ color: 0x00c062 });
 const pointMaterial_highlight = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
 const gridEdgeLength = 3000; // mm
@@ -33,7 +34,6 @@ let renderer, scene, camera, controls;
 let raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let visualInputJointId = null; // Global parameter to track the currently selected joint for visual input
-let torusHover = null;
 let jointArray = [];
 let selectedCircularEdge = null;
 
@@ -123,145 +123,6 @@ function handleMouseClick() {
         handleJointClick(intersects);
     }
 }
-
-// --- Visual Input Mode Toggle ---
-function toggleVisualInputMode(jointId) {
-    const newButton = document.getElementById(`selectLocation${jointId}`);
-    // Reset previously selected button if different.
-    if (visualInputJointId !== null && visualInputJointId !== jointId) {
-        const previousButton = document.getElementById(`selectLocation${visualInputJointId}`);
-        previousButton.classList.replace('btn-danger', 'btn-success');
-        previousButton.textContent = 'Select Edge';
-    }
-
-    if (visualInputJointId === jointId) {
-        // Unselect the current joint.
-        visualInputJointId = null;
-        newButton.classList.replace('btn-danger', 'btn-success');
-        newButton.textContent = 'Select Edge';
-        toggleEdgesVisibility(false); // Hide edges.
-    } else {
-        visualInputJointId = jointId;
-        newButton.classList.replace('btn-success', 'btn-danger');
-        newButton.textContent = 'Cancel';
-        toggleEdgesVisibility(true); // Show edges.
-    }
-}
-
-// When edge selection mode is toggled on/off,
-// ensure that only circular edges are enabled for raycasting, but keep them hidden until hovered over.
-function toggleEdgesVisibility(visible) { 
-    // When toggling, we enable raycasting if 'visible' is true,
-    // but always keep these edges hidden until hovered.
-    scene.traverse(child => {
-        if (child.name === "edge" || child.name === "CircularEdges") {
-            child.visible = false;  // Always hide by default.
-            child.raycast = visible ? THREE.Line.prototype.raycast : () => {};
-        }
-    });
-}
-
-
-
-// When an edge is clicked, use its stored data so that its highlight persists.
-function handleJointClick(intersects) {
-    const intersectedObject = intersects[0].object;
-    const objectName = intersectedObject.name;
-
-    if (visualInputJointId !== null) {
-        const jointNumber = visualInputJointId;
-        const jointIndex = jointArray.findIndex(joint => joint.jointNumber === jointNumber);
-        if (jointIndex === -1) return;
-        const joint = jointArray[jointIndex];
-
-        // Remove any existing visual objects for this joint.
-        [joint.ArrowObj, joint.SphereObj, joint.CircleObj].forEach(obj => {
-            if (obj) {
-                scene.remove(obj);
-                if (obj.geometry) obj.geometry.dispose();
-                if (obj.material) obj.material.dispose();
-            }
-        });
-        
-        // Process only if a circular edge was clicked.
-        if (objectName === "CircularEdges") {
-            // Mark this edge as selected so it remains highlighted.
-            selectedCircularEdge = intersectedObject;
-            const center = intersectedObject.position.clone();
-
-            // Create a permanent sphere at the center.
-            const permanentSphere = new THREE.Mesh(
-                new THREE.SphereGeometry(2, 32, 32),
-                pointMaterial
-            );
-            permanentSphere.position.copy(center);
-            permanentSphere.name = 'centerPoint';
-            permanentSphere.userData = { id: jointNumber, isSelected: true };
-            scene.add(permanentSphere);
-
-            // Extract axis and radius from userData.
-            const { x: axis_x, y: axis_y, z: axis_z } = intersectedObject.userData.axis;
-            const radius = intersectedObject.userData.radius;
-            const normalVect = new THREE.Vector3(axis_x, axis_y, axis_z).normalize();
-
-            // Create an arrow helper using the normal vector.
-            const arrowHelper = new THREE.ArrowHelper(
-                normalVect,
-                permanentSphere.position,
-                80,
-                0x00c062,
-                25,
-                20
-            );
-            arrowHelper.raycast = () => {};
-            scene.add(arrowHelper);
-
-            // Create a torus (circle) using the radius and orient it with the normal.
-            const circleGeometry = new THREE.TorusGeometry(radius, radius * 0.03, 64, 64);
-            const circle = new THREE.Mesh(circleGeometry, highlightLineMaterial);
-            const quaternion = new THREE.Quaternion().setFromUnitVectors(
-                new THREE.Vector3(0, 0, 1),
-                normalVect
-            );
-            circle.applyQuaternion(quaternion);
-            circle.position.copy(permanentSphere.position);
-            scene.add(circle);
-
-            // Update form fields.
-            const xInput = document.getElementById(`xInput${jointNumber}`);
-            const yInput = document.getElementById(`yInput${jointNumber}`);
-            const zInput = document.getElementById(`zInput${jointNumber}`);
-            const nxInput = document.getElementById(`nxInput${jointNumber}`);
-            const nyInput = document.getElementById(`nyInput${jointNumber}`);
-            const nzInput = document.getElementById(`nzInput${jointNumber}`);
-            if (xInput && yInput && zInput && nxInput && nyInput && nzInput) {
-                xInput.value = permanentSphere.position.x.toFixed(3);
-                yInput.value = permanentSphere.position.y.toFixed(3);
-                zInput.value = permanentSphere.position.z.toFixed(3);
-                nxInput.value = normalVect.x.toFixed(3);
-                nyInput.value = normalVect.y.toFixed(3);
-                nzInput.value = normalVect.z.toFixed(3);
-            } else {
-                console.error('Form input elements not found');
-            }
-
-            // Update joint data.
-            joint.jointLocation = permanentSphere.position.clone();
-            joint.jointVector = normalVect.clone();
-            joint.ArrowObj = arrowHelper;
-            joint.SphereObj = permanentSphere;
-            joint.CircleObj = circle;
-
-            // Reset visual input toggle.
-            toggleVisualInputMode(jointNumber);
-        }
-    }
-}
-
-
-
-
-
 
 
 async function addJoint(x = "-", y = "-", z = "-") {
@@ -521,18 +382,24 @@ function animate() {
 
 
 
+
+
+///// EDGE SELECTION ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Called on pointer move when edge selection mode is active.
 function edgeSelection() {
-    if (!visualInputJointId) return;
+    // Only process if visual input mode is active.
+    if (visualInputJointId === null) 
+        
+        return;
 
     const circularEdges = scene.children.filter(child => child.name === "CircularEdges");
     const intersects = raycaster.intersectObjects(circularEdges, true);
 
-    // Reset all circular edges: hide and set default (transparent) material.
+    // Reset edges: assign the transparent material and keep them fully transparent.
     circularEdges.forEach(edge => {
         if (edge !== selectedCircularEdge) {
             edge.material = transparentLineMaterial;
-            edge.visible = false;
+            edge.material.opacity = 0;
         }
     });
 
@@ -541,11 +408,161 @@ function edgeSelection() {
         if (selectedCircularEdge && selectedCircularEdge !== hoveredEdge) {
             selectedCircularEdge = null;
         }
-        hoveredEdge.visible = true;
+        // When hovered, swap to the highlight material and make it opaque.
         hoveredEdge.material = highlightLineMaterial;
+        hoveredEdge.material.opacity = 1;
     } else if (selectedCircularEdge) {
-        selectedCircularEdge.visible = true;
+        // Keep the selected edge highlighted.
         selectedCircularEdge.material = highlightLineMaterial;
+        selectedCircularEdge.material.opacity = 1;
+    }
+}
+
+// --- Visual Input Mode Toggle ---
+function toggleVisualInputMode(jointId) {
+    // Section 1: Get the button element corresponding to the joint.
+    const newButton = document.getElementById(`selectLocation${jointId}`);
+
+    // Section 2: If a different joint was previously selected, reset its button.
+    if (visualInputJointId !== null && visualInputJointId !== jointId) {
+        const previousButton = document.getElementById(`selectLocation${visualInputJointId}`);
+        previousButton.classList.replace('btn-danger', 'btn-success');
+        previousButton.textContent = 'Select Edge';
+    }
+
+    // Section 3: If the same joint button is pressed (finalize/cancel selection),
+    // clear the selection and disable edge highlighting.
+    if (visualInputJointId === jointId) {
+        visualInputJointId = null;
+        newButton.classList.replace('btn-danger', 'btn-success');
+        newButton.textContent = 'Select Edge';
+        toggleEdgesVisibility(false);
+    } else {
+        // Section 4: Activate visual input mode for the new joint.
+        visualInputJointId = jointId;
+        newButton.classList.replace('btn-success', 'btn-danger');
+        newButton.textContent = 'Cancel';
+        toggleEdgesVisibility(true);
+    }
+}
+
+// Toggle the visibility and raycasting of edge objects.
+function toggleEdgesVisibility(enable) {
+    // Section 1: Traverse the scene to find edge objects.
+    scene.traverse(child => {
+        if (child.name === "edge" || child.name === "CircularEdges") {
+            // Section 2: Set the material to be fully transparent (but still raycastable).
+            if (child.material) {
+                child.material.opacity = 0;
+                child.material.transparent = true;
+            }
+            // Section 3: Ensure the edge object is visible in the scene.
+            child.visible = true;
+            // Section 4: Enable or disable the default Mesh raycasting method.
+            child.raycast = enable ? THREE.Mesh.prototype.raycast : () => {};
+        }
+    });
+}
+
+
+
+
+// When an edge is clicked, use its stored data so that its highlight persists.
+// When an edge is clicked, use its stored data so that its highlight persists.
+function handleJointClick(intersects) {
+    // Section 1: Get the intersected object and its name.
+    const intersectedObject = intersects[0].object;
+    const objectName = intersectedObject.name;
+
+    // Section 2: Only process if visual input mode is active.
+    if (visualInputJointId !== null) {
+        const jointNumber = visualInputJointId; // The currently selected joint for association.
+        const jointIndex = jointArray.findIndex(joint => joint.jointNumber === jointNumber);
+        if (jointIndex === -1) return;
+        const joint = jointArray[jointIndex];
+
+        // Section 3: Remove any existing visual objects for this joint.
+        [joint.ArrowObj, joint.SphereObj, joint.TorusObj].forEach(obj => {
+            if (obj) {
+                scene.remove(obj);
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) obj.material.dispose();
+            }
+        });
+
+        // Section 4: Process only if a circular edge was clicked.
+        if (objectName === "CircularEdges") {
+            // Mark this edge as selected so it remains highlighted.
+            selectedCircularEdge = intersectedObject;
+            const center = intersectedObject.position.clone();
+
+            // Section 5: Create a permanent sphere at the edge's center.
+            const permanentSphere = new THREE.Mesh(
+                new THREE.SphereGeometry(2, 32, 32),
+                pointMaterial
+            );
+            permanentSphere.position.copy(center);
+            permanentSphere.name = 'centerPoint';
+            permanentSphere.userData = { id: jointNumber, isSelected: true };
+            scene.add(permanentSphere);
+
+            // Section 6: Extract the axis and radius from the edge's userData.
+            const { x: axis_x, y: axis_y, z: axis_z } = intersectedObject.userData.axis;
+            const radius = intersectedObject.userData.radius;
+            const normalVect = new THREE.Vector3(axis_x, axis_y, axis_z).normalize();
+
+            // Section 7: Create an arrow helper to indicate the joint's normal direction.
+            const arrowHelper = new THREE.ArrowHelper(
+                normalVect,
+                permanentSphere.position,
+                80,
+                0x00c062,
+                25,
+                20
+            );
+            arrowHelper.raycast = () => {}; // Disable raycasting for the arrow.
+            scene.add(arrowHelper);
+
+            // Section 8: Create a torus to help visualize where the joint was created.
+            const torusGeometry = new THREE.TorusGeometry(radius, radius * 0.03, 64, 64);
+            const torus = new THREE.Mesh(torusGeometry, highlightMeshMaterial);
+            // Align the torus with the normal vector.
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(
+                new THREE.Vector3(0, 0, 1),
+                normalVect
+            );
+            torus.applyQuaternion(quaternion);
+            torus.position.copy(permanentSphere.position);
+            scene.add(torus);
+
+            // Section 9: Update form fields with the joint's position and normal vector.
+            const xInput = document.getElementById(`xInput${jointNumber}`);
+            const yInput = document.getElementById(`yInput${jointNumber}`);
+            const zInput = document.getElementById(`zInput${jointNumber}`);
+            const nxInput = document.getElementById(`nxInput${jointNumber}`);
+            const nyInput = document.getElementById(`nyInput${jointNumber}`);
+            const nzInput = document.getElementById(`nzInput${jointNumber}`);
+            if (xInput && yInput && zInput && nxInput && nyInput && nzInput) {
+                xInput.value = permanentSphere.position.x.toFixed(3);
+                yInput.value = permanentSphere.position.y.toFixed(3);
+                zInput.value = permanentSphere.position.z.toFixed(3);
+                nxInput.value = normalVect.x.toFixed(3);
+                nyInput.value = normalVect.y.toFixed(3);
+                nzInput.value = normalVect.z.toFixed(3);
+            } else {
+                console.error('Form input elements not found');
+            }
+
+            // Section 10: Update joint data with the newly created visual objects.
+            joint.jointLocation = permanentSphere.position.clone();
+            joint.jointVector = normalVect.clone();
+            joint.ArrowObj = arrowHelper;
+            joint.SphereObj = permanentSphere;
+            joint.TorusObj = torus;
+
+            // Section 11: Reset visual input mode to finalize the selection.
+            toggleVisualInputMode(jointNumber);
+        }
     }
 }
 
@@ -642,16 +659,6 @@ function processCircularEdges(edges) {
         scene.add(torus);
     });
 }
-
-
-
-
-
-
-
-
-
-
 
 function handleFormSubmit(event) {
     event.preventDefault();
